@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "pakettic"
+version = "0.1.0"
+description = "A tool for minifying and compressing TIC-80 fantasy console carts"
+authors = ["Veikko Sariola <5684185+vsariola@users.noreply.github.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pyparsing = "^3.0.8"
+zopflipy = "^1.7"
+tqdm = "^4.64.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+autopep8 = "^1.6.0"
+
+[tool.poetry.scripts]
+pakettic = 'pakettic.main:main'
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
