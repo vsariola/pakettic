@@ -49,17 +49,20 @@ def main():
                 sys.exit(f"Unknown chunk type entered on command line: {chunkIdName}")
             chunkTypes.append(x)
         chunkTypes = list(dict.fromkeys(chunkTypes))  # remove duplicates
-    filepbar = tqdm.tqdm(input)
-    for file in filepbar:
-        path, ext = os.path.splitext(file)
+    filepbar = tqdm.tqdm(input, leave=False)
+    error = False
+    for fileName in filepbar:
+        path, ext = os.path.splitext(fileName)
+        originalSize = os.path.getsize(fileName)
         if ext == '.tic':
-            with io.open(file, "rb") as file:
+            with io.open(fileName, "rb") as file:
                 cart = fileformats.read_tic(file)
         elif ext == '.lua':
-            with io.open(file, "r") as file:
+            with io.open(fileName, "r") as file:
                 cart = fileformats.read_lua(file)
         else:
-            warnings.warn(f"Unknown file format extension {ext}, skipping {file}")
+            filepbar.write(f"Unknown file format extension {ext}, skipping {fileName}")
+            error = True
             continue
         codeZipChunks = [c for c in cart if c[1] == fileformats.ChunkID.CODE_ZIP]
         for c in codeZipChunks:
@@ -92,11 +95,14 @@ def main():
         ext = '.lua' if args.lua else '.tic'
         outfile = os.path.join(args.output, filename + '.packed' + ext) if os.path.isdir(args.output) else args.output
         if args.lua:
-            with io.open(outfile, "w") as file:
-                fileformats.write_lua(cart, file)
+            with io.open(outfile, "w", newline='\n') as file:
+                finalSize = fileformats.write_lua(cart, file)
         else:
             with io.open(outfile, "wb") as file:
-                fileformats.write_tic(cart, file)
+                finalSize = fileformats.write_tic(cart, file)
+        fileNameSliced = fileName[-30:] if len(fileName) > 30 else fileName
+        filepbar.write(f"{fileNameSliced:<30} Original: {originalSize} bytes. Packed: {finalSize} bytes.")
+    sys.exit(1 if error else 0)
 
 
 if __name__ == '__main__':
