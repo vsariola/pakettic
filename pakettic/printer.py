@@ -62,10 +62,10 @@ class Formatter:
             # yield '\n'
 
     @ __traverse.register
-    def _(self, node: ast.DoBlock):
+    def _(self, node: ast.Do):
         yield 'do'
         self.indent += 1
-        yield from self.__traverse(node.stats)
+        yield from self.__traverse(node.body)
         self.indent -= 1
         yield 'end'
 
@@ -247,6 +247,7 @@ class Formatter:
         yield 'if'
         yield from self.__traverse(node.test)
         yield 'then'
+        yield from self.__traverse(node.body)
         if node.orelse is not None:
             yield 'else'
             yield from self.__traverse(node.orelse)

@@ -3,14 +3,13 @@ from glob import glob
 import io
 import itertools
 import os
-from re import A
 import sys
 import warnings
 import zlib
 import pkg_resources
 import zopfli
 
-from pakettic import fileformats, parser, printer
+from pakettic import fileformats, parser, printer, optimize
 import tqdm
 
 
@@ -68,11 +67,13 @@ def main():
                 cart[c[0], fileformats.ChunkID.CODE] = zlib.decompress(cart[c][2:], -15)
                 del cart[c]
         cart[(0, fileformats.ChunkID.DEFAULT)] = b''
-        cart = dict(sorted((c for c in cart.items() if c[0][1] in chunkTypes), key=lambda x: chunkTypes.index(x[0][1])))
+        cart = dict((c for c in cart.items() if c[0][1] in chunkTypes))
         codeChunks = [c for c in cart if c[1] == fileformats.ChunkID.CODE]
         for c in codeChunks:
             code = cart[c].decode("ascii")
             ast = parser.parse_string(code)
+            ast = optimize.loads_to_funcs(ast)
+            ast = optimize.funcs_to_loads(ast)
             text = printer.format(ast)
             bytes = text.encode("ascii")
             if not args.uncompressed and not args.lua:
@@ -85,6 +86,8 @@ def main():
                 del cart[c]
             else:
                 cart[c] = bytes
+        cart = dict(sorted(cart.items(), key=lambda x: chunkTypes.index(fileformats.ChunkID.CODE)
+                    if x[0][1] == fileformats.ChunkID.CODE_ZIP else chunkTypes.index(x[0][1])))
         _, filename = os.path.split(path)
         ext = '.lua' if args.lua else '.tic'
         outfile = os.path.join(args.output, filename + '.packed' + ext) if os.path.isdir(args.output) else args.output

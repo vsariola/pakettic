@@ -16,8 +16,8 @@ class Block(Node):
 
 
 @dataclass
-class DoBlock(Node):
-    stats: list
+class Do(Node):
+    block: Block
 
 
 @dataclass
@@ -86,7 +86,7 @@ class ForRange(Node):
 class ForIn(Node):
     names: list
     exps: list
-    body: list
+    body: Block
 
 
 @dataclass
@@ -98,7 +98,7 @@ class Local(Node):
 @dataclass
 class Func(Node):
     args: list
-    body: list
+    body: Block
 
 
 @dataclass
@@ -134,8 +134,8 @@ class MethodCall(Node):
 @dataclass
 class If(Node):
     test: Expression
-    body: list
-    orelse: list
+    body: Block
+    orelse: Block
 
 
 @dataclass

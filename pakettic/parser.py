@@ -100,7 +100,7 @@ assign.set_parse_action(lambda toks: ast.Assign(toks[0], toks[1]))
 break_ = BREAK.set_parse_action(lambda toks: ast.Break())
 goto = (GOTO + Name).set_parse_action(lambda toks: ast.Goto(toks[0]))
 doblock = DO + block + END
-doblock.set_parse_action(lambda t: ast.DoBlock(t[0].stats))
+doblock.set_parse_action(lambda t: ast.Do(t[0]))
 while_ = WHILE + exp + DO + block + END
 while_.set_parse_action(lambda toks: ast.While(toks[0], toks[1]))
 repeat = REPEAT + block + UNTIL + exp
@@ -174,7 +174,7 @@ def unaryAction(t):
 nil = pp.Keyword("nil").set_parse_action(lambda: ast.Nil)
 false = pp.Keyword("false").set_parse_action(lambda: ast.Boolean(False))
 true = pp.Keyword("true").set_parse_action(lambda: ast.Boolean(True))
-ellipsis = pp.Keyword("...").set_parse_action(lambda: ast.Ellipsis)
+ellipsis = pp.Literal("...").set_parse_action(lambda: ast.Ellipsis())
 exp <<= pp.infixNotation(
     nil | false | true | Numeral | LiteralString | ellipsis | functiondef | prefixexp | tableconstructor,
     [
@@ -267,4 +267,4 @@ block.ignore('--' + pp.restOfLine)
 
 
 def parse_string(x):
-    return chunk.parse_string(x)[0]
+    return chunk.parse_string(x, parseAll=True)[0]

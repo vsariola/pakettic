@@ -35,17 +35,16 @@ Cart = dict[tuple[int, ChunkID], ByteString]
 
 
 def write_tic(cart: Cart, file: typing.BinaryIO, chopDefault=True) -> int:
-    # try to put DEFAULT chunks last as we can stop it short if it's the last chunk
-    key = lambda a: (1e6, 0) if a[1] == ChunkID.DEFAULT else a
     totalSize = 0
-    for i, bankChunk in enumerate(sorted(cart, key=key)):
+    for i, bankChunk in enumerate(cart):
         # if this the last chunk and it's a DEFAULT chunk
-        if chopDefault and bankChunk[1] == ChunkID.DEFAULT and i == len(cart) - 1:
+        bank, chunk = bankChunk
+        if chopDefault and chunk == ChunkID.DEFAULT and i == len(cart) - 1:
             totalSize += file.write(struct.pack("<B", ChunkID.DEFAULT))
             break
-        packedBankChunk = (bankChunk[0] << 5) + (bankChunk[1] & 31)
-        data = cart[bankChunk].rstrip(b'\0')
-        if bankChunk[1] != ChunkID.DEFAULT and len(data) == 0:
+        packedBankChunk = (bank << 5) + (chunk & 31)
+        data = cart[bankChunk].rstrip(b'\0') if chunk != ChunkID.CODE_ZIP and chunk != ChunkID.CODE else cart[bankChunk]
+        if chunk != ChunkID.DEFAULT and len(data) == 0:
             continue
         header = struct.pack("<BHB", packedBankChunk, len(data), 0)  # the last byte is reserved
         totalSize += file.write(header)

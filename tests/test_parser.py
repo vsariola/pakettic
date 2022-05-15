@@ -107,7 +107,7 @@ class TestFlowControl(unittest.TestCase):
         self.assertEqual(parser.chunk.parse_string('goto foo;goto bar')[0], ast.Block([ast.Goto('foo'), ast.Goto('bar')]))
 
     def test_block(self):
-        self.assertEqual(parser.parse_string('do break end'), ast.Block([ast.DoBlock([ast.Break()])]))
+        self.assertEqual(parser.parse_string('do break end'), ast.Block([ast.Do(ast.Block([ast.Break()]))]))
 
     def test_while(self):
         self.assertEqual(parser.chunk.parse_string('while true do break end')[
