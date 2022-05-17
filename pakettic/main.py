@@ -36,6 +36,8 @@ def main():
         input += glob(arg, recursive=True)
     if len(input) > 1 and not os.path.isdir(args.output):
         sys.exit('When multiple input files are defined, the output must be a directory.')
+    if len(input) == 0:
+        sys.exit('No input files found.')
     if args.chunks == 'ALL' or args.chunks == 'ALL_EXCEPT_DEFAULT':
         chunkTypes = [e for e in fileformats.ChunkID if e !=
                       fileformats.ChunkID.CODE_ZIP and e != fileformats.ChunkID.DEFAULT]
