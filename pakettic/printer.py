@@ -49,7 +49,7 @@ class Formatter:
             if len(token) == 0:
                 continue
             if token != 'if' and prevtoken != 'else':
-                if (prevtoken[-1].isalpha() and token[0].isalpha()) or (prevtoken[-1].isdigit() and bool(_hexy(token[0]))):
+                if prevtoken[-1].isalpha() and (token[0].isalpha() or token[0].isdigit()) or (prevtoken[-1].isdigit() and bool(_hexy(token[0]))):
                     yield ' '
             yield token
             prevtoken = token
@@ -134,7 +134,7 @@ class Formatter:
     @ __traverse.register
     def _(self, node: ast.ForRange):
         yield 'for'
-        yield node.var
+        yield from self.__traverse(node.var)
         yield '='
         yield from self.__traverse(node.lb)
         yield ','

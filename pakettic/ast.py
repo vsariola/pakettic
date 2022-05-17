@@ -11,6 +11,11 @@ class Node:
 
 
 @dataclass
+class Name(Node):
+    id: str
+
+
+@dataclass
 class Block(Node):
     stats: list
 
@@ -22,7 +27,7 @@ class Do(Node):
 
 @dataclass
 class Assign(Node):
-    targets: list
+    targets: list[Name]
     values: list
 
 
@@ -84,14 +89,14 @@ class ForRange(Node):
 
 @dataclass
 class ForIn(Node):
-    names: list
+    names: list[Name]
     exps: list
     body: Block
 
 
 @dataclass
 class Local(Node):
-    targets: list
+    targets: list[Name]
     values: list
 
 
@@ -136,11 +141,6 @@ class If(Node):
     test: Expression
     body: Block
     orelse: Block
-
-
-@dataclass
-class Name(Node):
-    id: str
 
 
 @dataclass

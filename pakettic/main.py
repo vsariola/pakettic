@@ -42,6 +42,8 @@ def main():
     argparser.add_argument('-o', '--output', default=os.getcwd(), metavar='output', help='Output file or directory.')
     argparser.add_argument('-u', '--uncompressed', action='store_const', const=True,
                            help='Leave code chunks uncompressed, even when outputting a .tic file.')
+    argparser.add_argument('-i', '--iterations', type=int, default=10000,
+                           help='Number of steps in the optimization algorithm')
     argparser.add_argument('-l', '--lua', action='store_const', const=True,
                            help='Output .lua carts instead of .tic carts.')
     argparser.add_argument('-c', '--chunks',
@@ -84,30 +86,35 @@ def main():
             code = cart[c].decode("ascii")
             ast = parser.parse_string(code)
             ast = optimize.loads_to_funcs(ast)
-            ast = optimize.funcs_to_loads(ast)
-            text = printer.format(ast)
-            bytes = text.encode("ascii")
             if not args.uncompressed and not args.lua:
-                zlibcompressors = (zlib.compressobj(level, zlib.DEFLATED, 15, 9, strategy)
-                                   for level in range(0, 10) for strategy in range(0, 5))
-                zopflicompressors = [zopfli.ZopfliCompressor(zopfli.ZOPFLI_FORMAT_ZLIB)]
-                data = (c.compress(bytes) + c.flush() for c in itertools.chain(zlibcompressors, zopflicompressors))
-                deflated = min(*data, key=len)[: -4]
-                cart[c[0], fileformats.ChunkID.CODE_ZIP] = deflated
                 del cart[c]
-            else:
-                cart[c] = bytes
-        cart = dict(sorted(cart.items(), key=lambda x: args.chunks.index(fileformats.ChunkID.CODE)
-                    if x[0][1] == fileformats.ChunkID.CODE_ZIP else args.chunks.index(x[0][1])))
-        _, filename = os.path.split(path)
-        ext = '.lua' if args.lua else '.tic'
-        outfile = os.path.join(args.output, filename + '.packed' + ext) if os.path.isdir(args.output) else args.output
-        if args.lua:
-            with io.open(outfile, "w", newline='\n') as file:
-                finalSize = fileformats.write_lua(cart, file)
-        else:
-            with io.open(outfile, "wb") as file:
-                finalSize = fileformats.write_tic(cart, file)
+
+            finalSize = 0
+
+            def _best_func(root):
+                nonlocal finalSize, cart
+                bytes = printer.format(root).encode("ascii")
+                if not args.uncompressed and not args.lua:
+                    zlibcompressors = (zlib.compressobj(level, zlib.DEFLATED, 15, 9, strategy)
+                                       for level in range(0, 10) for strategy in range(0, 5))
+                    zopflicompressors = [zopfli.ZopfliCompressor(zopfli.ZOPFLI_FORMAT_ZLIB,block_splitting=False)]
+                    data = (c.compress(bytes) + c.flush() for c in itertools.chain(zlibcompressors, zopflicompressors))
+                    deflated = min(*data, key=len)[: -4]
+                    cart[c[0], fileformats.ChunkID.CODE_ZIP] = deflated
+                else:
+                    cart[c] = bytes
+                cart = dict(sorted(cart.items(), key=lambda x: args.chunks.index(fileformats.ChunkID.CODE)
+                                   if x[0][1] == fileformats.ChunkID.CODE_ZIP else args.chunks.index(x[0][1])))
+                _, filename = os.path.split(path)
+                ext = '.lua' if args.lua else '.tic'
+                outfile = os.path.join(args.output, filename + '.packed' + ext) if os.path.isdir(args.output) else args.output
+                if args.lua:
+                    with io.open(outfile, "w", newline='\n') as file:
+                        finalSize = fileformats.write_lua(cart, file)
+                else:
+                    with io.open(outfile, "wb") as file:
+                        finalSize = fileformats.write_tic(cart, file)
+            ast = optimize.anneal(ast, iterations=args.iterations, best_func=_best_func)
         fileNameSliced = fileName[-30:] if len(fileName) > 30 else fileName
         filepbar.write(f"{fileNameSliced:<30} Original: {originalSize} bytes. Packed: {finalSize} bytes.")
     sys.exit(1 if error else 0)

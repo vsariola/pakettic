@@ -13,7 +13,7 @@ LBRACK, RBRACK, LBRACE, RBRACE, LPAR, RPAR, EQ, COMMA, SEMI, COLON, PERIOD = map
     pp.Suppress, '[]{}()=,;:.'
 )
 keywords = {
-    k.upper(): pp.Keyword(k).suppress()
+    k.upper(): pp.Literal(k).suppress()
     for k in """\
     return break do end while if then elseif else for in function local repeat until nil false true and or not goto
     """.split()
@@ -106,8 +106,8 @@ while_.set_parse_action(lambda toks: ast.While(toks[0], toks[1]))
 repeat = REPEAT + block + UNTIL + exp
 repeat.set_parse_action(lambda toks: ast.Repeat(condition=toks[1], block=toks[0]))
 for_range = FOR + Name + EQ + exp + COMMA + exp + (COMMA + exp)[0, 1] + DO + block + END
-for_range.set_parse_action(lambda t: ast.ForRange(t[0], t[1], t[2], None, t[3]) if len(
-    t) < 5 else ast.ForRange(t[0], t[1], t[2], t[3], t[4]))
+for_range.set_parse_action(lambda t: ast.ForRange(ast.Name(t[0]), t[1], t[2], None, t[3]) if len(
+    t) < 5 else ast.ForRange(ast.Name(t[0]), t[1], t[2], t[3], t[4]))
 if_ = IF + exp + THEN + block + \
     pp.Group(pp.ZeroOrMore(pp.Group(ELSEIF + exp + THEN + block))) + \
     pp.Optional(ELSE + block, default=None) + END
@@ -155,7 +155,8 @@ funcname <<= Name + (PERIOD + Name)[0, ...] + (COLON + Name)[0, 1]
 varlist <<= pp.Group(var + (COMMA + var)[0, ...], aslist=True)
 
 # namelist ::= Name {‘,’ Name}
-namelist <<= pp.Group(Name + (COMMA + Name)[0, ...], aslist=True)
+_Name = Name.copy().set_parse_action(lambda t: ast.Name(t[0]))
+namelist <<= pp.Group(_Name + (COMMA + _Name)[0, ...], aslist=True)
 
 # explist ::= exp {‘,’ exp}
 explist <<= pp.Group(exp + (COMMA + exp)[0, ...], aslist=True)

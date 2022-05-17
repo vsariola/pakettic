@@ -1,8 +1,22 @@
+import copy
 from functools import singledispatch
-from typing import Callable
-
-
+import math
+import random
+from typing import Callable, Union
+import tqdm
+import zopfli
 from pakettic import ast, parser, printer
+
+_FLIPPABLE_OPS = ["*", "+", "&", "~", "|", ">", "<", ">=", "<=", "~=", "=="]
+_FLIPPED_OPS = ["*", "+", "&", "~", "|", "<", ">", "<=", ">=", "~=", "=="]
+_LOWERS = [chr(i) for i in range(ord('a'), ord('z') + 1)]
+_UPPERS = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
+_ALPHASET = set(_LOWERS + _UPPERS)
+_RESERVED = {"TIC", "SCN", "BDR", "OVR", "circ", "circb", "elli", "ellib", "clip", "cls", "font", "line", "map", "pix",
+             "print", "rect", "rectb", "spr", "tri", "trib", "textri", "btn", "btnp", "key", "keyp", "mouse",
+             "music", "sfx", "memcpy", "memset", "pmem", "peek", "peek1", "peek2", "peek4", "poke", "poke1",
+             "poke2", "poke4", "sync", "vbank", "fget", "fset", "mget", "mset", "exit", "reset", "time", "tstamp", "trace",
+             "debug", "math"}
 
 
 def loads_to_funcs(node: ast.Node):
@@ -25,6 +39,77 @@ def funcs_to_loads(node: ast.Node):
     return apply_trans(node, _trans)
 
 
+def mutate(root: ast.Node, r: random.Random):
+    new_root = copy.deepcopy(root)
+    mutations = []
+
+    used_names = set()
+
+    def _check_mutations(node: ast.Node):
+        if type(node) == ast.BinOp:
+            try:
+                i = _FLIPPABLE_OPS.index(node.op)
+
+                def _mutation():
+                    node.left, node.right = node.right, node.left
+                    node.op = _FLIPPED_OPS[i]
+                mutations.append(_mutation)
+            except:
+                pass
+        elif type(node) == ast.Name:
+            used_names.add(node.id)
+
+    visit(new_root, _check_mutations)
+    available = sorted(_ALPHASET.difference(used_names))  # important: keep sorted to get deterministic results
+    used_names = sorted(used_names.difference(_RESERVED))
+
+    def var_repl(id_from, id_to):
+        def _mut():
+            def _repl(node):
+                if type(node) == ast.Name and node.id == id_from:
+                    node.id = id_to
+            visit(new_root, _repl)
+        return _mut
+    if len(available) > 0:
+        mutations.extend((var_repl(f, t) for f in used_names for t in available))
+    mutation = r.choice(mutations)
+    mutation()
+    return new_root
+
+
+def cost_func() -> Callable:
+    def _cost_func(x):
+        c = zopfli.ZopfliCompressor(zopfli.ZOPFLI_FORMAT_ZLIB, block_splitting=False)
+        printed = printer.format(x).encode("ascii")
+        return len(c.compress(printed) + c.flush())
+    return _cost_func
+
+
+def anneal(state, cost_func: Callable = cost_func(), mutate_func: Callable = mutate, iterations: int = 10000, start_temp: float = 1, end_temp: float = 0.1, best_func: Callable = None):
+    current_cost = cost_func(state)
+    best_cost = current_cost
+    best = state
+    if best_cost is not None:
+        best_func(best)
+    r = random.Random(0)  # deterministic seed, to have deterministic results
+    bar = tqdm.tqdm(range(iterations), position=1)
+    for i in bar:
+        alpha = i / (iterations - 1)
+        temp = math.exp((1 - alpha) * math.log(start_temp) + alpha * math.log(end_temp))
+        candidate = mutate_func(state, r)
+        cand_cost = cost_func(candidate)
+        if cand_cost < current_cost or math.exp(-(cand_cost - current_cost) / temp) >= r.random():
+            current_cost = cand_cost
+            state = candidate
+        if cand_cost < best_cost:
+            best_cost = cand_cost
+            best = candidate
+            if best_cost is not None:
+                best_func(best)
+        bar.set_description(f"B:{best_cost} C:{current_cost} A:{cand_cost} T: {temp:.1f}")
+    return best
+
+
 @singledispatch
 def apply_trans(node: ast.Node, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
     return trans(node)
@@ -42,7 +127,7 @@ def _(node: ast.Do, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
 
 @ apply_trans.register
 def _(node: ast.Assign, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.Assign(targets=node.targets, values=[apply_trans(v, trans) for v in node.values]))
+    return trans(ast.Assign(targets=[apply_trans(t, trans) for t in node.targets], values=[apply_trans(v, trans) for v in node.values]))
 
 
 @ apply_trans.register
@@ -57,17 +142,17 @@ def _(node: ast.Repeat, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
 
 @ apply_trans.register
 def _(node: ast.ForRange, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.ForRange(node.var, apply_trans(node.lb, trans), apply_trans(node.ub, trans), apply_trans(node.step, trans), apply_trans(node.body, trans)))
+    return trans(ast.ForRange(apply_trans(node.var, trans), apply_trans(node.lb, trans), apply_trans(node.ub, trans), apply_trans(node.step, trans), apply_trans(node.body, trans)))
 
 
 @ apply_trans.register
 def _(node: ast.ForIn, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.ForIn(node.names, [apply_trans(i, trans) for i in node.exps], body=apply_trans(node.body, trans)))
+    return trans(ast.ForIn([apply_trans(n, trans) for n in node.names], [apply_trans(i, trans) for i in node.exps], body=apply_trans(node.body, trans)))
 
 
 @ apply_trans.register
 def _(node: ast.Local, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.Local(node.targets, value=[apply_trans(v, trans) for v in node.values]))
+    return trans(ast.Local([apply_trans(t, trans) for t in node.targets], value=[apply_trans(v, trans) for v in node.values]))
 
 
 @ apply_trans.register
@@ -113,3 +198,130 @@ def _(node: ast.BinOp, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
 @ apply_trans.register
 def _(node: ast.UnaryOp, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
     return trans(ast.UnaryOp(op=node.op, operand=apply_trans(node.operand, trans)))
+
+
+@singledispatch
+def visit(node: ast.Node, visitor: Callable[[ast.Node], None]):
+    visitor(node)
+
+
+@ visit.register
+def _(node: ast.Block, visitor: Callable[[ast.Node], None]):
+    visitor(node)
+    for s in node.stats:
+        visit(s, visitor)
+
+
+@ visit.register
+def _(node: ast.Do, visitor: Callable[[ast.Node], None]):
+    visitor(node)
+    visit(node.block, visitor)
+
+
+@ visit.register
+def _(node: ast.Assign, visitor: Callable[[ast.Node], None]):
+    visitor(node)
+    for t in node.targets:
+        visit(t, visitor)
+    for v in node.values:
+        visit(v, visitor)
+
+
+@ visit.register
+def _(node: ast.While, visitor: Callable[[ast.Node], None]):
+    visitor(node)
+    visit(node.condition, visitor)
+    visit(node.block, visitor)
+
+
+@ visit.register
+def _(node: ast.Repeat, visitor: Callable[[ast.Node], None]):
+    visitor(node)
+    visit(node.block, visitor)
+    visit(node.condition, visitor)
+
+
+@ visit.register
+def _(node: ast.ForRange, visitor: Callable[[ast.Node], None]):
+    visitor(node)
+    visit(node.var, visitor)
+    visit(node.lb, visitor)
+    visit(node.ub, visitor)
+    visit(node.step, visitor)
+    visit(node.body, visitor)
+
+
+@ visit.register
+def _(node: ast.ForIn, visitor: Callable[[ast.Node], None]):
+    visitor(node)
+    for i in node.names:
+        visit(i, visitor)
+    for i in node.exps:
+        visit(i, visitor)
+    visit(node.body, visitor)
+
+
+@ visit.register
+def _(node: ast.Local, visitor: Callable[[ast.Node], None]):
+    visitor(node)
+    for t in node.targets:
+        visit(t, visitor)
+    for v in node.values:
+        visit(v, visitor)
+
+
+@ visit.register
+def _(node: ast.Func, visitor: Callable[[ast.Node], None]):
+    visitor(node)
+    visit(node.body, visitor)
+
+
+@ visit.register
+def _(node: ast.Index, visitor: Callable[[ast.Node], None]):
+    visitor(node)
+    visit(node.obj, visitor)
+    visit(node.item, visitor)
+
+
+@ visit.register
+def _(node: ast.Table, visitor: Callable[[ast.Node], None]):
+    visitor(node)
+    for f in node.fields:
+        visit(f, visitor)
+
+
+@ visit.register
+def _(node: ast.Field, visitor: Callable[[ast.Node], None]):
+    visitor(node)
+    visit(node.key, visitor)
+    visit(node.value, visitor)
+
+
+@ visit.register(ast.MethodCall)
+@ visit.register(ast.Call)
+def _(node: Union[ast.Call, ast.MethodCall], visitor: Callable[[ast.Node], None]):
+    visitor(node)
+    visit(node.func, visitor)
+    for a in node.args:
+        visit(a, visitor)
+
+
+@ visit.register
+def _(node: ast.If, visitor: Callable[[ast.Node], None]):
+    visitor(node)
+    visit(node.test, visitor)
+    visit(node.body, visitor)
+    visit(node.orelse, visitor)
+
+
+@ visit.register
+def _(node: ast.BinOp, visitor: Callable[[ast.Node], None]):
+    visitor(node)
+    visit(node.left, visitor)
+    visit(node.right, visitor)
+
+
+@ visit.register
+def _(node: ast.UnaryOp, visitor: Callable[[ast.Node], None]):
+    visitor(node)
+    visit(node.operand, visitor)
