@@ -35,7 +35,7 @@ def _parse_chunks_arg(arg: str) -> list[fileformats.ChunkID]:
 def main():
     sys.setrecursionlimit(100000)  # TODO: find out why the parser recurses so heavily and reduce that
 
-    version = pkg_resources.get_distribution('crushtic').version
+    version = pkg_resources.get_distribution('pakettic').version
     argparser = argparse.ArgumentParser(
         prog='pakettic', description=f'Minify and compress TIC-80 fantasy console carts. v{version}')
     argparser.add_argument('input', nargs='+', help='Input file(s). * and ** work for wildcards and recursion.')
