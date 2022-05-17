@@ -13,6 +13,25 @@ from pakettic import fileformats, parser, printer, optimize
 import tqdm
 
 
+def _parse_chunks_arg(arg: str) -> list[fileformats.ChunkID]:
+    """Parses the chunk type arg (ALL, ALL_EXCEPT_DEFAULT or comma-separated list of chunk types) into a list of chunk types"""
+    a = arg.upper()
+    if a == 'ALL' or a == 'ALL_EXCEPT_DEFAULT':
+        chunk_types = [e for e in fileformats.ChunkID if e !=
+                       fileformats.ChunkID.CODE_ZIP and e != fileformats.ChunkID.DEFAULT]
+        if a == 'ALL':
+            chunk_types = [fileformats.ChunkID.DEFAULT] + chunk_types
+    else:
+        chunk_types = []
+        for chunk_id_name in a.split(','):
+            x = getattr(fileformats.ChunkID, chunk_id_name.upper())
+            if x is None:
+                sys.exit(f"Unknown chunk type entered on command line: {chunk_id_name}")
+            chunk_types.append(x)
+        chunk_types = list(dict.fromkeys(chunk_types))  # remove duplicates
+    return chunk_types
+
+
 def main():
     sys.setrecursionlimit(100000)  # TODO: find out why the parser recurses so heavily and reduce that
 
@@ -27,7 +46,7 @@ def main():
                            help='Output .lua carts instead of .tic carts.')
     argparser.add_argument('-c', '--chunks',
                            default='code,default', metavar='chunk', help='Chunks to include and their order. Valid values: ALL, ALL_EXCEPT_DEFAULT, or a comma separated list of chunk types without spaces (BINARY,CODE,COVER_DEP,DEFAULT,FLAGS,MAP,MUSIC,PALETTE,PATTERNS_DEP,PATTERNS,SAMPLES,SCREEN,SPRITES,TILES,WAVEFORM). Default value: CODE,DEFAULT.',
-                           type=str.upper)
+                           type=_parse_chunks_arg)
     args = argparser.parse_args()
     input = []
     # use glob to find files matching wildcards
@@ -38,19 +57,6 @@ def main():
         sys.exit('When multiple input files are defined, the output must be a directory.')
     if len(input) == 0:
         sys.exit('No input files found.')
-    if args.chunks == 'ALL' or args.chunks == 'ALL_EXCEPT_DEFAULT':
-        chunkTypes = [e for e in fileformats.ChunkID if e !=
-                      fileformats.ChunkID.CODE_ZIP and e != fileformats.ChunkID.DEFAULT]
-        if args.chunks == 'ALL':
-            chunkTypes = [fileformats.ChunkID.DEFAULT] + chunkTypes
-    else:
-        chunkTypes = []
-        for chunkIdName in args.chunks.split(','):
-            x = getattr(fileformats.ChunkID, chunkIdName.upper())
-            if x is None:
-                sys.exit(f"Unknown chunk type entered on command line: {chunkIdName}")
-            chunkTypes.append(x)
-        chunkTypes = list(dict.fromkeys(chunkTypes))  # remove duplicates
     filepbar = tqdm.tqdm(input, leave=False)
     error = False
     for fileName in filepbar:
@@ -72,7 +78,7 @@ def main():
                 cart[c[0], fileformats.ChunkID.CODE] = zlib.decompress(cart[c][2:], -15)
                 del cart[c]
         cart[(0, fileformats.ChunkID.DEFAULT)] = b''
-        cart = dict((c for c in cart.items() if c[0][1] in chunkTypes))
+        cart = dict((c for c in cart.items() if c[0][1] in args.chunks))
         codeChunks = [c for c in cart if c[1] == fileformats.ChunkID.CODE]
         for c in codeChunks:
             code = cart[c].decode("ascii")
@@ -91,8 +97,8 @@ def main():
                 del cart[c]
             else:
                 cart[c] = bytes
-        cart = dict(sorted(cart.items(), key=lambda x: chunkTypes.index(fileformats.ChunkID.CODE)
-                    if x[0][1] == fileformats.ChunkID.CODE_ZIP else chunkTypes.index(x[0][1])))
+        cart = dict(sorted(cart.items(), key=lambda x: args.chunks.index(fileformats.ChunkID.CODE)
+                    if x[0][1] == fileformats.ChunkID.CODE_ZIP else args.chunks.index(x[0][1])))
         _, filename = os.path.split(path)
         ext = '.lua' if args.lua else '.tic'
         outfile = os.path.join(args.output, filename + '.packed' + ext) if os.path.isdir(args.output) else args.output
