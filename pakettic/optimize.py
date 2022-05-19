@@ -90,7 +90,8 @@ def anneal(state, cost_func: Callable = cost_func(), mutate_func: Callable = mut
     best_cost = current_cost
     best = state
     if best_cost is not None:
-        best_func(best)
+        if best_func(best):
+            return best
     r = random.Random(0)  # deterministic seed, to have deterministic results
     bar = tqdm.tqdm(range(iterations), position=1)
     for i in bar:
@@ -105,7 +106,8 @@ def anneal(state, cost_func: Callable = cost_func(), mutate_func: Callable = mut
             best_cost = cand_cost
             best = candidate
             if best_cost is not None:
-                best_func(best)
+                if best_func(best):
+                    return best
         bar.set_description(f"B:{best_cost} C:{current_cost} A:{cand_cost} T: {temp:.1f}")
     return best
 

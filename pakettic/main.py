@@ -42,6 +42,8 @@ def main():
     argparser.add_argument('-o', '--output', default=os.getcwd(), metavar='output', help='Output file or directory.')
     argparser.add_argument('-u', '--uncompressed', action='store_const', const=True,
                            help='Leave code chunks uncompressed, even when outputting a .tic file.')
+    argparser.add_argument('-t', '--target-size', type=int, default=0,
+                           help='When target size is reached, stop compressing prematurely. Default value: 0')
     argparser.add_argument('-i', '--iterations', type=int, default=10000,
                            help='Number of steps in the optimization algorithm')
     argparser.add_argument('-l', '--lua', action='store_const', const=True,
@@ -118,6 +120,7 @@ def main():
                 else:
                     with io.open(outfile, "wb") as file:
                         finalSize = fileformats.write_tic(cart, file)
+                return finalSize <= args.target_size
             ast = optimize.anneal(ast, iterations=args.iterations, best_func=_best_func)
         filepbar.write(f"{fileNameSliced:<30} Original: {originalSize} bytes. Packed: {finalSize} bytes.")
     sys.exit(1 if error else 0)
