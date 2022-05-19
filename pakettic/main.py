@@ -59,11 +59,13 @@ def main():
         sys.exit('When multiple input files are defined, the output must be a directory.')
     if len(input) == 0:
         sys.exit('No input files found.')
-    filepbar = tqdm.tqdm(input, leave=False)
+    filepbar = tqdm.tqdm(input, leave=False, smoothing=0.02)
     error = False
     for fileName in filepbar:
         path, ext = os.path.splitext(fileName)
         originalSize = os.path.getsize(fileName)
+        fileNameSliced = fileName[-30:] if len(fileName) > 30 else fileName
+        filepbar.set_description(f"Reading       {fileNameSliced}")
         if ext == '.tic':
             with io.open(fileName, "rb") as file:
                 cart = fileformats.read_tic(file)
@@ -74,6 +76,7 @@ def main():
             filepbar.write(f"Unknown file format extension {ext}, skipping {fileName}")
             error = True
             continue
+        filepbar.set_description(f"Decompressing {fileNameSliced}")
         codeZipChunks = [c for c in cart if c[1] == fileformats.ChunkID.CODE_ZIP]
         for c in codeZipChunks:
             if (c[0], fileformats.ChunkID.CODE) not in cart:
@@ -81,6 +84,7 @@ def main():
                 del cart[c]
         cart[(0, fileformats.ChunkID.DEFAULT)] = b''
         cart = dict((c for c in cart.items() if c[0][1] in args.chunks))
+        filepbar.set_description(f"Compressing   {fileNameSliced}")
         codeChunks = [c for c in cart if c[1] == fileformats.ChunkID.CODE]
         for c in codeChunks:
             code = cart[c].decode("ascii")
@@ -97,7 +101,7 @@ def main():
                 if not args.uncompressed and not args.lua:
                     zlibcompressors = (zlib.compressobj(level, zlib.DEFLATED, 15, 9, strategy)
                                        for level in range(0, 10) for strategy in range(0, 5))
-                    zopflicompressors = [zopfli.ZopfliCompressor(zopfli.ZOPFLI_FORMAT_ZLIB,block_splitting=False)]
+                    zopflicompressors = [zopfli.ZopfliCompressor(zopfli.ZOPFLI_FORMAT_ZLIB, block_splitting=False)]
                     data = (c.compress(bytes) + c.flush() for c in itertools.chain(zlibcompressors, zopflicompressors))
                     deflated = min(*data, key=len)[: -4]
                     cart[c[0], fileformats.ChunkID.CODE_ZIP] = deflated
@@ -115,7 +119,6 @@ def main():
                     with io.open(outfile, "wb") as file:
                         finalSize = fileformats.write_tic(cart, file)
             ast = optimize.anneal(ast, iterations=args.iterations, best_func=_best_func)
-        fileNameSliced = fileName[-30:] if len(fileName) > 30 else fileName
         filepbar.write(f"{fileNameSliced:<30} Original: {originalSize} bytes. Packed: {finalSize} bytes.")
     sys.exit(1 if error else 0)
 
