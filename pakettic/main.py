@@ -74,13 +74,10 @@ def main():
             error = True
             continue
         filepbar.set_description(f"Decompressing {filepathSliced}")
-        codeZipChunks = [c for c in cart if c[1] == ticfile.ChunkID.CODE_ZIP]
-        for c in codeZipChunks:
-            if (c[0], ticfile.ChunkID.CODE) not in cart:
-                cart[c[0], ticfile.ChunkID.CODE] = zlib.decompress(cart[c][2:], -15)
-                del cart[c]
-        cart[(0, ticfile.ChunkID.DEFAULT)] = b''
-        cart = dict((c for c in cart.items() if c[0][1] in args.chunks))
+        cart.update([((k[0], ticfile.ChunkID.CODE), zlib.decompress(v[2:], -15))
+                    for k, v in cart.items() if k[1] == ticfile.ChunkID.CODE_ZIP])  # decompress zipped chunks
+        cart[(0, ticfile.ChunkID.DEFAULT)] = b''  # add default chunk if it's missing
+        cart = dict(c for i in args.chunks for c in cart.items() if c[0][1] == i)  # only include the chunks listed in args
         filepbar.set_description(f"Compressing   {filepathSliced}")
         codeChunks = [c for c in cart if c[1] == ticfile.ChunkID.CODE]
         for c in codeChunks:
