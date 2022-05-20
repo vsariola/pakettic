@@ -32,6 +32,11 @@ def _parse_chunks_arg(arg: str) -> list[ticfile.ChunkID]:
     return chunk_types
 
 
+def _compress(bytes):
+    c = zopfli.ZopfliCompressor(zopfli.ZOPFLI_FORMAT_ZLIB, block_splitting=False)
+    return (c.compress(bytes) + c.flush())[: -4]
+
+
 def main():
     sys.setrecursionlimit(100000)  # TODO: find out why the parser recurses so heavily and reduce that
 
@@ -66,6 +71,9 @@ def main():
     filepbar = tqdm.tqdm(input, leave=False, smoothing=0.02)
     error = False
     for filepath in filepbar:
+        _, filename = os.path.split(os.path.splitext(filepath)[0])
+        ext = '.lua' if args.lua else '.tic'
+        outfile = os.path.join(args.output, filename + '.packed' + ext) if os.path.isdir(args.output) else args.output
         originalSize = os.path.getsize(filepath)
         filepathSliced = filepath[-30:] if len(filepath) > 30 else filepath
         filepbar.set_description(f"Reading       {filepathSliced}")
@@ -81,34 +89,23 @@ def main():
         cart[(0, ticfile.ChunkID.DEFAULT)] = b''  # add default chunk if it's missing
         cart = dict(c for i in args.chunks for c in cart.items() if c[0][1] == i)  # only include the chunks listed in args
         filepbar.set_description(f"Compressing   {filepathSliced}")
+        outcart = cart.copy() if args.uncompressed else dict((k, v) if k[1] != ticfile.ChunkID.CODE else (
+            (k[0], ticfile.ChunkID.CODE_ZIP), _compress(v)) for k, v in cart.items())
+        finalSize = ticfile.write(outcart, outfile)
         codeChunks = [c for c in cart if c[1] == ticfile.ChunkID.CODE]
         for c in codeChunks:
             code = cart[c].decode("ascii")
             ast = parser.parse_string(code)
             ast = optimize.loads_to_funcs(ast)
-            if not args.uncompressed:
-                del cart[c]
-
-            finalSize = 0
 
             def _best_func(root):
                 nonlocal finalSize, cart
                 bytes = printer.format(root).encode("ascii")
                 if not args.uncompressed:
-                    zlibcompressors = (zlib.compressobj(level, zlib.DEFLATED, 15, 9, strategy)
-                                       for level in range(0, 10) for strategy in range(0, 5))
-                    zopflicompressors = [zopfli.ZopfliCompressor(zopfli.ZOPFLI_FORMAT_ZLIB, block_splitting=False)]
-                    data = (c.compress(bytes) + c.flush() for c in itertools.chain(zlibcompressors, zopflicompressors))
-                    deflated = min(*data, key=len)[: -4]
-                    cart[c[0], ticfile.ChunkID.CODE_ZIP] = deflated
+                    outcart[c[0], ticfile.ChunkID.CODE_ZIP] = _compress(bytes)
                 else:
-                    cart[c] = bytes
-                cart = dict(sorted(cart.items(), key=lambda x: args.chunks.index(ticfile.ChunkID.CODE)
-                                   if x[0][1] == ticfile.ChunkID.CODE_ZIP else args.chunks.index(x[0][1])))
-                _, filename = os.path.split(os.path.splitext(filepath)[0])
-                ext = '.lua' if args.lua else '.tic'
-                outfile = os.path.join(args.output, filename + '.packed' + ext) if os.path.isdir(args.output) else args.output
-                finalSize = ticfile.write(cart, outfile)
+                    outcart[c] = bytes
+                finalSize = ticfile.write(outcart, outfile)
                 return finalSize <= args.target_size
             ast = optimize.anneal(ast, iterations=args.iterations, best_func=_best_func)
         filepbar.write(f"{filepathSliced:<30} Original: {originalSize} bytes. Packed: {finalSize} bytes.")
