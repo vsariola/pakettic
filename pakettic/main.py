@@ -9,22 +9,22 @@ import zlib
 import pkg_resources
 import zopfli
 
-from pakettic import fileformats, parser, printer, optimize
+from pakettic import parser, printer, optimize, ticfile
 import tqdm
 
 
-def _parse_chunks_arg(arg: str) -> list[fileformats.ChunkID]:
+def _parse_chunks_arg(arg: str) -> list[ticfile.ChunkID]:
     """Parses the chunk type arg (ALL, ALL_EXCEPT_DEFAULT or comma-separated list of chunk types) into a list of chunk types"""
     a = arg.upper()
     if a == 'ALL' or a == 'ALL_EXCEPT_DEFAULT':
-        chunk_types = [e for e in fileformats.ChunkID if e !=
-                       fileformats.ChunkID.CODE_ZIP and e != fileformats.ChunkID.DEFAULT]
+        chunk_types = [e for e in ticfile.ChunkID if e !=
+                       ticfile.ChunkID.CODE_ZIP and e != ticfile.ChunkID.DEFAULT]
         if a == 'ALL':
-            chunk_types = [fileformats.ChunkID.DEFAULT] + chunk_types
+            chunk_types = [ticfile.ChunkID.DEFAULT] + chunk_types
     else:
         chunk_types = []
         for chunk_id_name in a.split(','):
-            x = getattr(fileformats.ChunkID, chunk_id_name.upper())
+            x = getattr(ticfile.ChunkID, chunk_id_name.upper())
             if x is None:
                 sys.exit(f"Unknown chunk type entered on command line: {chunk_id_name}")
             chunk_types.append(x)
@@ -63,31 +63,26 @@ def main():
         sys.exit('No input files found.')
     filepbar = tqdm.tqdm(input, leave=False, smoothing=0.02)
     error = False
-    for fileName in filepbar:
-        path, ext = os.path.splitext(fileName)
-        originalSize = os.path.getsize(fileName)
-        fileNameSliced = fileName[-30:] if len(fileName) > 30 else fileName
-        filepbar.set_description(f"Reading       {fileNameSliced}")
-        if ext == '.tic':
-            with io.open(fileName, "rb") as file:
-                cart = fileformats.read_tic(file)
-        elif ext == '.lua':
-            with io.open(fileName, "r") as file:
-                cart = fileformats.read_lua(file)
-        else:
-            filepbar.write(f"Unknown file format extension {ext}, skipping {fileName}")
+    for filepath in filepbar:
+        originalSize = os.path.getsize(filepath)
+        filepathSliced = filepath[-30:] if len(filepath) > 30 else filepath
+        filepbar.set_description(f"Reading       {filepathSliced}")
+        try:
+            cart = ticfile.read(filepath)
+        except Exception as e:
+            filepbar.write(f"Error reading {filepath}: {e}, skipping...")
             error = True
             continue
-        filepbar.set_description(f"Decompressing {fileNameSliced}")
-        codeZipChunks = [c for c in cart if c[1] == fileformats.ChunkID.CODE_ZIP]
+        filepbar.set_description(f"Decompressing {filepathSliced}")
+        codeZipChunks = [c for c in cart if c[1] == ticfile.ChunkID.CODE_ZIP]
         for c in codeZipChunks:
-            if (c[0], fileformats.ChunkID.CODE) not in cart:
-                cart[c[0], fileformats.ChunkID.CODE] = zlib.decompress(cart[c][2:], -15)
+            if (c[0], ticfile.ChunkID.CODE) not in cart:
+                cart[c[0], ticfile.ChunkID.CODE] = zlib.decompress(cart[c][2:], -15)
                 del cart[c]
-        cart[(0, fileformats.ChunkID.DEFAULT)] = b''
+        cart[(0, ticfile.ChunkID.DEFAULT)] = b''
         cart = dict((c for c in cart.items() if c[0][1] in args.chunks))
-        filepbar.set_description(f"Compressing   {fileNameSliced}")
-        codeChunks = [c for c in cart if c[1] == fileformats.ChunkID.CODE]
+        filepbar.set_description(f"Compressing   {filepathSliced}")
+        codeChunks = [c for c in cart if c[1] == ticfile.ChunkID.CODE]
         for c in codeChunks:
             code = cart[c].decode("ascii")
             ast = parser.parse_string(code)
@@ -106,23 +101,18 @@ def main():
                     zopflicompressors = [zopfli.ZopfliCompressor(zopfli.ZOPFLI_FORMAT_ZLIB, block_splitting=False)]
                     data = (c.compress(bytes) + c.flush() for c in itertools.chain(zlibcompressors, zopflicompressors))
                     deflated = min(*data, key=len)[: -4]
-                    cart[c[0], fileformats.ChunkID.CODE_ZIP] = deflated
+                    cart[c[0], ticfile.ChunkID.CODE_ZIP] = deflated
                 else:
                     cart[c] = bytes
-                cart = dict(sorted(cart.items(), key=lambda x: args.chunks.index(fileformats.ChunkID.CODE)
-                                   if x[0][1] == fileformats.ChunkID.CODE_ZIP else args.chunks.index(x[0][1])))
-                _, filename = os.path.split(path)
+                cart = dict(sorted(cart.items(), key=lambda x: args.chunks.index(ticfile.ChunkID.CODE)
+                                   if x[0][1] == ticfile.ChunkID.CODE_ZIP else args.chunks.index(x[0][1])))
+                _, filename = os.path.split(os.path.splitext(filepath)[0])
                 ext = '.lua' if args.lua else '.tic'
                 outfile = os.path.join(args.output, filename + '.packed' + ext) if os.path.isdir(args.output) else args.output
-                if args.lua:
-                    with io.open(outfile, "w", newline='\n') as file:
-                        finalSize = fileformats.write_lua(cart, file)
-                else:
-                    with io.open(outfile, "wb") as file:
-                        finalSize = fileformats.write_tic(cart, file)
+                finalSize = ticfile.write(cart, outfile)
                 return finalSize <= args.target_size
             ast = optimize.anneal(ast, iterations=args.iterations, best_func=_best_func)
-        filepbar.write(f"{fileNameSliced:<30} Original: {originalSize} bytes. Packed: {finalSize} bytes.")
+        filepbar.write(f"{filepathSliced:<30} Original: {originalSize} bytes. Packed: {finalSize} bytes.")
     sys.exit(1 if error else 0)
 
 

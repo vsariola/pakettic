@@ -1,4 +1,6 @@
+import io
 from lib2to3.pgen2.token import SLASH
+import os
 import struct
 import pyparsing as pp
 from typing import IO, ByteString
@@ -101,6 +103,41 @@ def read_lua(file: typing.TextIO) -> Cart:
     retCode = retCode.rstrip()
     ret[0, ChunkID.CODE] = retCode.encode("ascii")
     return ret
+
+
+def read(filepath: str) -> Cart:
+    """Read a tic cart from the disk, detecting the file type based on extension
+            Parameters:
+                filepath (str): Path of the cart on disk
+            Returns:
+                cart (dict): A dictionary with (bank,chunkId) keys and ByteStrings values
+    """
+    _, ext = os.path.splitext(filepath)
+    if ext == '.lua':
+        with io.open(filepath, "r") as file:
+            return read_lua(file)
+    else:
+        with io.open(filepath, "rb") as file:
+            return read_tic(file)
+
+
+def write(cart: Cart, filepath: str, ext: str = None) -> int:
+    """Write a tic cart to the disk
+            Parameters:
+                cart (dict): A dictionary with (bank,chunkId) keys and ByteStrings values
+                filepath (str): Path of the cart on disk
+                ext (str): Optional file format extension. If omitted, the format is auto-detected from the filepath.
+            Returns:
+                filesize (int): Size of the just-written cart on disk
+    """
+    if ext is None:
+        _, ext = os.path.splitext(filepath)
+    if ext == '.lua':
+        with io.open(filepath, "w", newline='\n') as file:
+            return write_lua(cart, file)
+    else:
+        with io.open(filepath, "wb") as file:
+            return write_tic(cart, file)
 
 
 _LANGLE, _RANGLE, _SLASH, _COLON = map(
