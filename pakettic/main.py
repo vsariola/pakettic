@@ -52,6 +52,8 @@ def main():
                            default='code,default', metavar='chunk', help='Chunks to include and their order. Valid values: ALL, ALL_EXCEPT_DEFAULT, or a comma separated list of chunk types without spaces (BINARY,CODE,COVER_DEP,DEFAULT,FLAGS,MAP,MUSIC,PALETTE,PATTERNS_DEP,PATTERNS,SAMPLES,SCREEN,SPRITES,TILES,WAVEFORM). Default value: CODE,DEFAULT.',
                            type=_parse_chunks_arg)
     args = argparser.parse_args()
+    if args.lua:
+        args.uncompressed = True  # Outputting LUA and compressing are mutually exclusive
     input = []
     # use glob to find files matching wildcards
     # if a string does not contain a wildcard, glob will return it as is.
@@ -84,7 +86,7 @@ def main():
             code = cart[c].decode("ascii")
             ast = parser.parse_string(code)
             ast = optimize.loads_to_funcs(ast)
-            if not args.uncompressed and not args.lua:
+            if not args.uncompressed:
                 del cart[c]
 
             finalSize = 0
@@ -92,7 +94,7 @@ def main():
             def _best_func(root):
                 nonlocal finalSize, cart
                 bytes = printer.format(root).encode("ascii")
-                if not args.uncompressed and not args.lua:
+                if not args.uncompressed:
                     zlibcompressors = (zlib.compressobj(level, zlib.DEFLATED, 15, 9, strategy)
                                        for level in range(0, 10) for strategy in range(0, 5))
                     zopflicompressors = [zopfli.ZopfliCompressor(zopfli.ZOPFLI_FORMAT_ZLIB, block_splitting=False)]
