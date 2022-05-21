@@ -77,38 +77,28 @@ def mutate(root: ast.Node, r: random.Random):
     return new_root
 
 
-def cost_func() -> Callable:
-    def _cost_func(x):
-        c = zopfli.ZopfliCompressor(zopfli.ZOPFLI_FORMAT_ZLIB, block_splitting=False)
-        printed = printer.format(x).encode("ascii")
-        return len(c.compress(printed) + c.flush())
-    return _cost_func
-
-
-def anneal(state, cost_func: Callable = cost_func(), mutate_func: Callable = mutate, iterations: int = 10000, start_temp: float = 1, end_temp: float = 0.1, best_func: Callable = None):
-    current_cost = cost_func(state)
+def anneal(state, cost_func: Callable, mutate_func: Callable = mutate, iterations: int = 10000, start_temp: float = 1, end_temp: float = 0.1):
+    current_cost, done = cost_func(state)
     best_cost = current_cost
     best = state
-    if best_cost is not None:
-        if best_func(best):
-            return best
     r = random.Random(0)  # deterministic seed, to have deterministic results
     bar = tqdm.tqdm(range(iterations), position=1)
     for i in bar:
         alpha = i / (iterations - 1)
         temp = math.exp((1 - alpha) * math.log(start_temp) + alpha * math.log(end_temp))
         candidate = mutate_func(state, r)
-        cand_cost = cost_func(candidate)
+        cand_cost, done = cost_func(candidate)
+        if done:
+            break
         if cand_cost < current_cost or math.exp(-(cand_cost - current_cost) / temp) >= r.random():
             current_cost = cand_cost
             state = candidate
         if cand_cost < best_cost:
             best_cost = cand_cost
             best = candidate
-            if best_cost is not None:
-                if best_func(best):
-                    return best
         bar.set_description(f"B:{best_cost} C:{current_cost} A:{cand_cost} T: {temp:.1f}")
+        if best_cost <= 0:
+            break
     return best
 
 

@@ -98,16 +98,20 @@ def main():
             ast = parser.parse_string(code)
             ast = optimize.loads_to_funcs(ast)
 
-            def _best_func(root):
-                nonlocal finalSize, cart
+            def _cost_func(root):
+                nonlocal finalSize
                 bytes = printer.format(root).encode("ascii")
+                key = c
                 if not args.uncompressed:
-                    outcart[c[0], ticfile.ChunkID.CODE_ZIP] = _compress(bytes)
-                else:
-                    outcart[c] = bytes
-                finalSize = ticfile.write(outcart, outfile)
-                return finalSize <= args.target_size
-            ast = optimize.anneal(ast, iterations=args.iterations, best_func=_best_func)
+                    key = (c[0], ticfile.ChunkID.CODE_ZIP)
+                    bytes = _compress(bytes)
+                diff = len(bytes) - len(outcart[key])
+                ret = finalSize + diff
+                if diff < 0:
+                    outcart[key] = bytes
+                    finalSize = ticfile.write(outcart, outfile)
+                return ret, ret <= args.target_size
+            ast = optimize.anneal(ast, iterations=args.iterations, cost_func=_cost_func)
         filepbar.write(f"{filepathSliced:<30} Original: {originalSize} bytes. Packed: {finalSize} bytes.")
     sys.exit(1 if error else 0)
 
