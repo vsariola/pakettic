@@ -13,9 +13,7 @@ _FLIPPED_OPS = ["*", "+", "&", "~", "|", "<", ">", "<=", ">=", "~=", "=="]
 _PLUSMINUS_OPS = ["+", "-"]
 _MULDIV_OPS = ["*", "/"]
 _AND_OR_XOR_OPS = ["&", "|", "~"]
-_LOWERS = [chr(i) for i in range(ord('a'), ord('z') + 1)]
-_UPPERS = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
-_ALPHASET = set(_LOWERS + _UPPERS)
+_LOWERS = set(chr(i) for i in range(ord('a'), ord('z') + 1))
 _RESERVED = {"TIC", "SCN", "BDR", "OVR", "circ", "circb", "elli", "ellib", "clip", "cls", "font", "line", "map", "pix",
              "print", "rect", "rectb", "spr", "tri", "trib", "textri", "btn", "btnp", "key", "keyp", "mouse",
              "music", "sfx", "memcpy", "memset", "pmem", "peek", "peek1", "peek2", "peek4", "poke", "poke1",
@@ -74,7 +72,7 @@ def mutate(root: ast.Node, r: random.Random):
             used_names.add(node.id)
 
     visit(new_root, _check_mutations)
-    available = sorted(_ALPHASET.difference(used_names))  # important: keep sorted to get deterministic results
+    available = sorted(_LOWERS.difference(used_names))  # important: keep sorted to get deterministic results
     used_names = sorted(used_names.difference(_RESERVED))
 
     def var_repl(id_from, id_to):
