@@ -52,6 +52,8 @@ def main():
                            help='output .lua carts instead of .tic carts')
     argparser.add_argument('-t', '--target-size', type=int, default=0, metavar='BYTES',
                            help='when target size is reached, stop compressing prematurely. default: 0')
+    argparser.add_argument('--exact', action='store_const', const=True,
+                           help='used with target-size to indicate that the target size should be reached exactly')
     argparser.add_argument('-i', '--iterations', type=int, default=10000, metavar='ITERS',
                            help='number of steps in the optimization algorithm. default: 10000')
     argparser.add_argument('--start-temp', type=float, default=1, metavar='BYTES',
@@ -103,7 +105,7 @@ def main():
             ast = parser.parse_string(code)
             ast = optimize.loads_to_funcs(ast)
 
-            def _cost_func(root):
+            def _cost_func(root, best_cost):
                 nonlocal finalSize
                 bytes = printer.format(root).encode("ascii")
                 key = c
@@ -111,11 +113,13 @@ def main():
                     key = (c[0], ticfile.ChunkID.CODE_ZIP)
                     bytes = _compress(bytes)
                 diff = len(bytes) - len(outcart[key])
-                ret = finalSize + diff
-                if diff < 0:
+                ret = finalSize + diff - args.target_size
+                if args.exact:
+                    ret = abs(ret)
+                if ret < best_cost:
                     outcart[key] = bytes
                     finalSize = ticfile.write(outcart, outfile)
-                return ret, ret <= args.target_size
+                return ret
             ast = optimize.anneal(ast, iterations=args.iterations, cost_func=_cost_func,
                                   start_temp=args.start_temp, end_temp=args.end_temp)
         filepbar.write(f"{filepathSliced:<30} Original: {originalSize} bytes. Packed: {finalSize} bytes.")

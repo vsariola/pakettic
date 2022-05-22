@@ -1,3 +1,4 @@
+from cmath import inf
 import copy
 from functools import singledispatch
 import math
@@ -78,7 +79,7 @@ def mutate(root: ast.Node, r: random.Random):
 
 
 def anneal(state, cost_func: Callable, iterations: int, start_temp: float, end_temp: float, mutate_func: Callable = mutate):
-    current_cost, done = cost_func(state)
+    current_cost = cost_func(state, inf)
     best_cost = current_cost
     best = state
     r = random.Random(0)  # deterministic seed, to have deterministic results
@@ -87,9 +88,7 @@ def anneal(state, cost_func: Callable, iterations: int, start_temp: float, end_t
         alpha = i / (iterations - 1)
         temp = math.exp((1 - alpha) * math.log(start_temp) + alpha * math.log(end_temp))
         candidate = mutate_func(state, r)
-        cand_cost, done = cost_func(candidate)
-        if done:
-            break
+        cand_cost = cost_func(candidate, best_cost)
         if cand_cost < current_cost or math.exp(-(cand_cost - current_cost) / temp) >= r.random():
             current_cost = cand_cost
             state = candidate
