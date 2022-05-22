@@ -77,7 +77,7 @@ def mutate(root: ast.Node, r: random.Random):
     return new_root
 
 
-def anneal(state, cost_func: Callable, mutate_func: Callable = mutate, iterations: int = 10000, start_temp: float = 1, end_temp: float = 0.1):
+def anneal(state, cost_func: Callable, iterations: int, start_temp: float, end_temp: float, mutate_func: Callable = mutate):
     current_cost, done = cost_func(state)
     best_cost = current_cost
     best = state

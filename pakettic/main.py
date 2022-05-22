@@ -51,6 +51,10 @@ def main():
                            help='When target size is reached, stop compressing prematurely. Default value: 0')
     argparser.add_argument('-i', '--iterations', type=int, default=10000,
                            help='Number of steps in the optimization algorithm')
+    argparser.add_argument('--start-temp', type=float, default=1, metavar='BYTES',
+                           help='Starting temperature. Default: 1')
+    argparser.add_argument('--end-temp', type=float, default=0.1, metavar='BYTES',
+                           help='Ending temperature. Default: 0.1')
     argparser.add_argument('-l', '--lua', action='store_const', const=True,
                            help='Output .lua carts instead of .tic carts.')
     argparser.add_argument('-c', '--chunks',
@@ -111,7 +115,8 @@ def main():
                     outcart[key] = bytes
                     finalSize = ticfile.write(outcart, outfile)
                 return ret, ret <= args.target_size
-            ast = optimize.anneal(ast, iterations=args.iterations, cost_func=_cost_func)
+            ast = optimize.anneal(ast, iterations=args.iterations, cost_func=_cost_func,
+                                  start_temp=args.start_temp, end_temp=args.end_temp)
         filepbar.write(f"{filepathSliced:<30} Original: {originalSize} bytes. Packed: {finalSize} bytes.")
     sys.exit(1 if error else 0)
 
