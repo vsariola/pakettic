@@ -124,7 +124,7 @@ class Formatter:
 
     @ __traverse.register
     def _(self, node: ast.Repeat):
-        yield 'repeat\n'
+        yield 'repeat'
         self.indent += 1
         yield from self.__traverse(node.block)
         self.indent -= 1
