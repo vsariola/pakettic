@@ -42,23 +42,24 @@ def main():
 
     version = pkg_resources.get_distribution('pakettic').version
     argparser = argparse.ArgumentParser(
-        prog='pakettic', description=f'Minify and compress TIC-80 fantasy console carts. v{version}')
-    argparser.add_argument('input', nargs='+', help='Input file(s). * and ** work for wildcards and recursion.')
-    argparser.add_argument('-o', '--output', default=os.getcwd(), metavar='output', help='Output file or directory.')
+        prog='pakettic', description=f'Minify and compress TIC-80 fantasy console carts. v{version}',
+        formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=33))
+    argparser.add_argument('input', nargs='+', help='input file(s). ?, * and ** wildcards work')
+    argparser.add_argument('-o', '--output', default=os.getcwd(), help='output file or directory')
     argparser.add_argument('-u', '--uncompressed', action='store_const', const=True,
-                           help='Leave code chunks uncompressed, even when outputting a .tic file.')
-    argparser.add_argument('-t', '--target-size', type=int, default=0,
-                           help='When target size is reached, stop compressing prematurely. Default value: 0')
-    argparser.add_argument('-i', '--iterations', type=int, default=10000,
-                           help='Number of steps in the optimization algorithm')
-    argparser.add_argument('--start-temp', type=float, default=1, metavar='BYTES',
-                           help='Starting temperature. Default: 1')
-    argparser.add_argument('--end-temp', type=float, default=0.1, metavar='BYTES',
-                           help='Ending temperature. Default: 0.1')
+                           help='leave code chunks uncompressed, even when outputting a .tic file')
     argparser.add_argument('-l', '--lua', action='store_const', const=True,
-                           help='Output .lua carts instead of .tic carts.')
+                           help='output .lua carts instead of .tic carts')
+    argparser.add_argument('-t', '--target-size', type=int, default=0, metavar='BYTES',
+                           help='when target size is reached, stop compressing prematurely. default: 0')
+    argparser.add_argument('-i', '--iterations', type=int, default=10000, metavar='ITERS',
+                           help='number of steps in the optimization algorithm. default: 10000')
+    argparser.add_argument('--start-temp', type=float, default=1, metavar='BYTES',
+                           help='starting temperature. default: 1')
+    argparser.add_argument('--end-temp', type=float, default=0.1, metavar='BYTES',
+                           help='ending temperature. default: 0.1')
     argparser.add_argument('-c', '--chunks',
-                           default='code,default', metavar='chunk', help='Chunks to include and their order. Valid values: ALL, ALL_EXCEPT_DEFAULT, or a comma separated list of chunk types without spaces (BINARY,CODE,COVER_DEP,DEFAULT,FLAGS,MAP,MUSIC,PALETTE,PATTERNS_DEP,PATTERNS,SAMPLES,SCREEN,SPRITES,TILES,WAVEFORM). Default value: CODE,DEFAULT.',
+                           default='code,default', metavar='CHUNKS', help='chunk types to include and their order. valid: ALL, ALL_EXCEPT_DEFAULT, or comma-separated list without spaces: BINARY,CODE,COVER_DEP,DEFAULT,FLAGS,MAP,MUSIC,PALETTE,PATTERNS_DEP,PATTERNS,SAMPLES,SCREEN,SPRITES,TILES,WAVEFORM. default: CODE,DEFAULT',
                            type=_parse_chunks_arg)
     args = argparser.parse_args()
     if args.lua:
