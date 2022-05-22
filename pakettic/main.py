@@ -32,11 +32,6 @@ def _parse_chunks_arg(arg: str) -> list[ticfile.ChunkID]:
     return chunk_types
 
 
-def _compress(bytes):
-    c = zopfli.ZopfliCompressor(zopfli.ZOPFLI_FORMAT_ZLIB, block_splitting=False)
-    return (c.compress(bytes) + c.flush())[: -4]
-
-
 def main():
     sys.setrecursionlimit(100000)  # TODO: find out why the parser recurses so heavily and reduce that
 
@@ -60,10 +55,22 @@ def main():
                            help='starting temperature. default: 1')
     argparser.add_argument('--end-temp', type=float, default=0.1, metavar='BYTES',
                            help='ending temperature. default: 0.1')
+    argparser.add_argument('--zopfli-split', action='store_const', const=True,
+                           help='enable block splitting in zopfli')
+    argparser.add_argument('--zopfli-split-max', type=int, default=14, metavar='ITERS',
+                           help='maximum number of block splittings. default: 0')
+    argparser.add_argument('--zopfli-iterations', type=int, default=14, metavar='ITERS',
+                           help='how many iterations zopfli uses. default: 14')
     argparser.add_argument('-c', '--chunks',
                            default='code,default', metavar='CHUNKS', help='chunk types to include and their order. valid: ALL, ALL_EXCEPT_DEFAULT, or comma-separated list without spaces: BINARY,CODE,COVER_DEP,DEFAULT,FLAGS,MAP,MUSIC,PALETTE,PATTERNS_DEP,PATTERNS,SAMPLES,SCREEN,SPRITES,TILES,WAVEFORM. default: CODE,DEFAULT',
                            type=_parse_chunks_arg)
     args = argparser.parse_args()
+
+    def _compress(bytes):
+        c = zopfli.ZopfliCompressor(zopfli.ZOPFLI_FORMAT_ZLIB, block_splitting=args.zopfli_split,
+                                    block_splitting_max=args.zopfli_split_max, iterations=args.zopfli_iterations)
+        return (c.compress(bytes) + c.flush())[: -4]
+
     if args.lua:
         args.uncompressed = True  # Outputting LUA and compressing are mutually exclusive
     input = []
