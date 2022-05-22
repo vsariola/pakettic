@@ -10,6 +10,9 @@ from pakettic import ast, parser, printer
 
 _FLIPPABLE_OPS = ["*", "+", "&", "~", "|", ">", "<", ">=", "<=", "~=", "=="]
 _FLIPPED_OPS = ["*", "+", "&", "~", "|", "<", ">", "<=", ">=", "~=", "=="]
+_PLUSMINUS_OPS = ["+", "-"]
+_MULDIV_OPS = ["*", "/"]
+_AND_OR_XOR_OPS = ["&", "|", "~"]
 _LOWERS = [chr(i) for i in range(ord('a'), ord('z') + 1)]
 _UPPERS = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
 _ALPHASET = set(_LOWERS + _UPPERS)
@@ -57,6 +60,16 @@ def mutate(root: ast.Node, r: random.Random):
                 mutations.append(_mutation)
             except:
                 pass
+            if type(node.left) == ast.BinOp:
+                if (node.op in _PLUSMINUS_OPS and node.left.op in _PLUSMINUS_OPS) or (node.op in _MULDIV_OPS and node.left.op in _MULDIV_OPS):
+                    def _mutation():
+                        node.left.right, node.right = node.right, node.left.right
+                        node.op, node.left.op = node.left.op, node.op
+                    mutations.append(_mutation)
+                if node.op in _AND_OR_XOR_OPS and node.left.op == node.op:
+                    def _mutation():
+                        node.left.right, node.right = node.right, node.left.right
+                    mutations.append(_mutation)
         elif type(node) == ast.Name:
             used_names.add(node.id)
 
