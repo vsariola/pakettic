@@ -48,7 +48,7 @@ class Formatter:
         for token in tokens:
             if len(token) == 0:
                 continue
-            if token != 'if' and prevtoken != 'else':
+            if token != 'if' or prevtoken != 'else':
                 if prevtoken[-1].isalpha() and (token[0].isalpha() or token[0].isdigit()) or (prevtoken[-1].isdigit() and bool(_hexy(token[0]))):
                     yield ' '
             yield token
