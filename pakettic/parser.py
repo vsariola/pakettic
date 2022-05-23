@@ -166,6 +166,7 @@ explist <<= pp.Group(exp + (COMMA + exp)[0, ...], aslist=True)
 
 left_assoc = lambda t: functools.reduce(lambda x, y: ast.BinOp(x, y[0], y[1]), zip(t[0][1::2], t[0][2::2]), t[0][0])
 right_assoc = lambda t: functools.reduce(lambda x, y: ast.BinOp(y[1], y[0], x), zip(t[0][-2::-2], t[0][-3::-2]), t[0][-1])
+alt = lambda t: ast.Alt(t[0].asList())
 
 
 def unaryAction(t):
@@ -179,6 +180,7 @@ ellipsis = pp.Literal("...").set_parse_action(lambda: ast.Ellipsis())
 exp <<= pp.infixNotation(
     nil | false | true | Numeral | LiteralString | ellipsis | functiondef | prefixexp | tableconstructor,
     [
+        (pp.Literal('---').suppress(), 2, pp.opAssoc.LEFT, alt),
         (pp.oneOf('not # - ~'), 1, pp.OpAssoc.RIGHT, unaryAction),
         ('^', 2, pp.opAssoc.RIGHT, right_assoc),
         (pp.oneOf('* / // %'), 2, pp.OpAssoc.LEFT, left_assoc),
@@ -264,7 +266,7 @@ field <<= (LBRACK + exp + RBRACK + EQ + exp).set_parse_action(lambda t: ast.Fiel
 fieldsep <<= COMMA | SEMI
 
 # ignore comments, WARNING: has to be last, as it updates all the rules recursively
-block.ignore('--' + pp.restOfLine)
+block.ignore(('--' + ~pp.Literal('-')) + pp.restOfLine)
 
 
 def parse_string(x):

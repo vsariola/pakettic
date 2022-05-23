@@ -295,5 +295,9 @@ class Formatter:
             yield ')'
 
     @ __traverse.register
+    def _(self, node: ast.Alt):
+        yield from self.__traverse(node.alts[0])
+
+    @ __traverse.register
     def _(self, node: ast.Numeral):
         yield str(node)

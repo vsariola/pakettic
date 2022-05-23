@@ -155,6 +155,7 @@ class BinOp(Node):
 
 
 _precedence = \
+    dict.fromkeys(['---'], 1) | \
     dict.fromkeys(['^'], 2) | \
     dict.fromkeys(['*', '/', '//', '%'], 3) | \
     dict.fromkeys(['+', '-'], 4) | \
@@ -198,3 +199,8 @@ class Numeral(Node):
         else:
             return f"{'%x' % self.whole}{'.' + '%x' % self.fractional if self.fractional != 0 else ''}{'p' + self.exponent if self.exponent != 0 else ''}" if self.hex \
                 else f"{self.whole}{'.' + str(self.fractional)[::-1] if self.fractional != 0 else ''}{'e' + str(self.exponent) if self.exponent != 0 else ''}"
+
+
+@dataclass
+class Alt(Node):
+    alts: list

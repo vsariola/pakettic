@@ -70,6 +70,11 @@ def mutate(root: ast.Node, r: random.Random):
                     mutations.append(_mutation)
         elif type(node) == ast.Name:
             used_names.add(node.id)
+        elif type(node) == ast.Alt:
+            for i, _ in enumerate(node.alts[1:]):
+                def _mutation(i=i):
+                    node.alts[0], node.alts[i + 1] = node.alts[i + 1], node.alts[0]
+                mutations.append(_mutation)
 
     visit(new_root, _check_mutations)
     available = sorted(_LOWERS.difference(used_names))  # important: keep sorted to get deterministic results
@@ -327,3 +332,10 @@ def _(node: ast.BinOp, visitor: Callable[[ast.Node], None]):
 def _(node: ast.UnaryOp, visitor: Callable[[ast.Node], None]):
     visitor(node)
     visit(node.operand, visitor)
+
+
+@ visit.register
+def _(node: ast.Alt, visitor: Callable[[ast.Node], None]):
+    visitor(node)
+    for a in node.alts:
+        visit(a, visitor)
