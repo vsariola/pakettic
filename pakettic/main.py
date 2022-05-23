@@ -57,7 +57,7 @@ def main():
                            help='ending temperature. default: 0.1')
     argparser.add_argument('--zopfli-split', action='store_const', const=True,
                            help='enable block splitting in zopfli')
-    argparser.add_argument('--zopfli-split-max', type=int, default=14, metavar='ITERS',
+    argparser.add_argument('--zopfli-split-max', type=int, default=0, metavar='ITERS',
                            help='maximum number of block splittings. default: 0')
     argparser.add_argument('--zopfli-iterations', type=int, default=14, metavar='ITERS',
                            help='how many iterations zopfli uses. default: 14')
