@@ -80,7 +80,7 @@ def mutate(root: ast.Node, r: random.Random):
                 for j in range(i + 1, len(node.stats)):
                     def _mutation(i=i, j=j):
                         node.stats[i], node.stats[j] = node.stats[j], node.stats[i]
-                mutations.append(_mutation)
+                    mutations.append(_mutation)
 
     visit(new_root, _check_mutations)
     available = sorted(_LOWERS.difference(used_names))  # important: keep sorted to get deterministic results
