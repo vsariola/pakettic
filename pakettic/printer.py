@@ -55,8 +55,9 @@ class Formatter:
             yield token
             prevtoken = token
 
-    @ __traverse.register
-    def _(self, node: ast.Block):
+    @ __traverse.register(ast.Block)
+    @ __traverse.register(ast.Perm)
+    def _(self, node: typing.Union[ast.Block, ast.Perm]):
         for n in node.stats:
             # yield ' ' * self.indent
             yield from self.__traverse(n)

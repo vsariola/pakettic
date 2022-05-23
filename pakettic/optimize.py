@@ -75,6 +75,12 @@ def mutate(root: ast.Node, r: random.Random):
                 def _mutation(i=i):
                     node.alts[0], node.alts[i + 1] = node.alts[i + 1], node.alts[0]
                 mutations.append(_mutation)
+        elif type(node) == ast.Perm:
+            for i in range(len(node.stats)):
+                for j in range(i + 1, len(node.stats)):
+                    def _mutation(i=i, j=j):
+                        node.stats[i], node.stats[j] = node.stats[j], node.stats[i]
+                mutations.append(_mutation)
 
     visit(new_root, _check_mutations)
     available = sorted(_LOWERS.difference(used_names))  # important: keep sorted to get deterministic results
@@ -200,6 +206,16 @@ def _(node: ast.If, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
 @ apply_trans.register
 def _(node: ast.BinOp, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
     return trans(ast.BinOp(left=apply_trans(node.left, trans), op=node.op, right=apply_trans(node.right, trans)))
+
+
+@ apply_trans.register
+def _(node: ast.Alt, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
+    return trans(ast.Alt([apply_trans(a, trans) for a in node.alts]))
+
+
+@ apply_trans.register
+def _(node: ast.Perm, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
+    return trans(ast.Perm([apply_trans(s, trans) for s in node.stats]))
 
 
 @ apply_trans.register
@@ -339,3 +355,10 @@ def _(node: ast.Alt, visitor: Callable[[ast.Node], None]):
     visitor(node)
     for a in node.alts:
         visit(a, visitor)
+
+
+@ visit.register
+def _(node: ast.Perm, visitor: Callable[[ast.Node], None]):
+    visitor(node)
+    for s in node.stats:
+        visit(s, visitor)

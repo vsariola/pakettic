@@ -9,8 +9,8 @@ import operator
 
 pp.ParserElement.enablePackrat()
 
-LBRACK, RBRACK, LBRACE, RBRACE, LPAR, RPAR, EQ, COMMA, SEMI, COLON, PERIOD = map(
-    pp.Suppress, '[]{}()=,;:.'
+LBRACK, RBRACK, LBRACE, RBRACE, LPAR, RPAR, EQ, COMMA, SEMI, COLON, PERIOD, DASH = map(
+    pp.Suppress, '[]{}()=,;:.-'
 )
 keywords = {
     k.upper(): pp.Literal(k).suppress()
@@ -101,6 +101,8 @@ break_ = BREAK.set_parse_action(lambda toks: ast.Break())
 goto = (GOTO + Name).set_parse_action(lambda toks: ast.Goto(toks[0]))
 doblock = DO + block + END
 doblock.set_parse_action(lambda t: ast.Do(t[0]))
+permblock = pp.Literal('--{').suppress() + pp.Group(stat[0, ...], aslist=True) + pp.Literal('--}').suppress()
+permblock.set_parse_action(lambda t: ast.Perm(t[0]))
 while_ = WHILE + exp + DO + block + END
 while_.set_parse_action(lambda toks: ast.While(toks[0], toks[1]))
 repeat = REPEAT + block + UNTIL + exp
@@ -129,6 +131,7 @@ stat <<= SEMI | \
     break_ | \
     goto | \
     doblock | \
+    permblock | \
     while_ | \
     repeat | \
     for_range | \
@@ -266,7 +269,7 @@ field <<= (LBRACK + exp + RBRACK + EQ + exp).set_parse_action(lambda t: ast.Fiel
 fieldsep <<= COMMA | SEMI
 
 # ignore comments, WARNING: has to be last, as it updates all the rules recursively
-block.ignore(('--' + ~pp.Literal('-')) + pp.restOfLine)
+block.ignore(('--' + ~pp.FollowedBy(DASH | LBRACE | RBRACE)) + pp.restOfLine)
 
 
 def parse_string(x):

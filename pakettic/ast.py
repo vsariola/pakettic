@@ -204,3 +204,8 @@ class Numeral(Node):
 @dataclass
 class Alt(Node):
     alts: list
+
+
+@dataclass
+class Perm(Node):
+    stats: list

@@ -56,6 +56,9 @@ poetry run python -m unittest discover -s tests
   those.
 - `load'<some-code-here>'` is parsed as `function()<some-code-here>end`
   so you can happily recompress already compressed carts.
+- Another special comment is a pair of `--{` and `--}`. The algorithm
+  tries to reorder all statements between these to see if it compresses
+  better.
 
 ## Known issues
 
