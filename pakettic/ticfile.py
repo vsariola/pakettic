@@ -36,72 +36,72 @@ class ChunkID(IntEnum):
 Cart = dict[tuple[int, ChunkID], ByteString]
 
 
-def write_tic(cart: Cart, file: typing.BinaryIO, chopDefault=True) -> int:
-    totalSize = 0
-    for i, bankChunk in enumerate(cart):
+def write_tic(cart: Cart, file: typing.BinaryIO, chop_default=True) -> int:
+    total_size = 0
+    for i, bank_chunk in enumerate(cart):
         # if this the last chunk and it's a DEFAULT chunk
-        bank, chunk = bankChunk
-        if chopDefault and chunk == ChunkID.DEFAULT and i == len(cart) - 1:
-            totalSize += file.write(struct.pack("<B", ChunkID.DEFAULT))
+        bank, chunk = bank_chunk
+        if chop_default and chunk == ChunkID.DEFAULT and i == len(cart) - 1:
+            total_size += file.write(struct.pack("<B", ChunkID.DEFAULT))
             break
-        packedBankChunk = (bank << 5) + (chunk & 31)
-        data = cart[bankChunk].rstrip(b'\0') if chunk != ChunkID.CODE_ZIP and chunk != ChunkID.CODE else cart[bankChunk]
+        packed_bank_chunk = (bank << 5) + (chunk & 31)
+        data = cart[bank_chunk].rstrip(b'\0') if chunk != ChunkID.CODE_ZIP and chunk != ChunkID.CODE else cart[bank_chunk]
         if chunk != ChunkID.DEFAULT and len(data) == 0:
             continue
-        header = struct.pack("<BHB", packedBankChunk, len(data), 0)  # the last byte is reserved
-        totalSize += file.write(header)
-        totalSize += file.write(data)
-    return totalSize
+        header = struct.pack("<BHB", packed_bank_chunk, len(data), 0)  # the last byte is reserved
+        total_size += file.write(header)
+        total_size += file.write(data)
+    return total_size
 
 
 def read_tic(file: typing.BinaryIO) -> Cart:
     cart = {}
     while True:
-        bankAndChunkBytes = file.read(1)  # byte, with 3 highest bits bank and 5 lowest bits chunk type
-        if len(bankAndChunkBytes) == 0:
+        bank_and_chunk_bytes = file.read(1)  # byte, with 3 highest bits bank and 5 lowest bits chunk type
+        if len(bank_and_chunk_bytes) == 0:
             return cart
-        bank = bankAndChunkBytes[0] >> 5
-        chunkID = ChunkID(bankAndChunkBytes[0] & 31)
+        bank = bank_and_chunk_bytes[0] >> 5
+        chunk_id = ChunkID(bank_and_chunk_bytes[0] & 31)
         header = file.read(3)  # sizecoding hackers usually end CHUNK_DEFAULT abruptly without header
         size = struct.unpack("<H", header[:2])[0] if len(header) > 2 else 0
         chunk = file.read(size)
-        cart[bank, chunkID] = chunk
+        cart[bank, chunk_id] = chunk
         if len(chunk) < size:
             return cart
 
 
 def write_lua(cart: Cart, file: typing.TextIO) -> int:
-    totalSize = 0
-    totalSize += file.write(cart[0, ChunkID.CODE].decode("ascii"))
+    total_size = 0
+    total_size += file.write(cart[0, ChunkID.CODE].decode("ascii"))
     for k, v in _TEXTCHUNKS.items():
-        num, size, flip, chunkId = v
-        if (0, chunkId) in cart:
-            totalSize += file.write(f'\n-- <{k}>')
+        num, size, flip, chunk_id = v
+        if (0, chunk_id) in cart:
+            total_size += file.write(f'\n-- <{k}>')
             for i in range(num):
-                part = cart[0, chunkId][i * size:(i + 1) * size]
+                part = cart[0, chunk_id][i * size:(i + 1) * size]
                 if all(x == 0 for x in part):
                     continue
                 hex = part.hex()
                 if flip:
                     hex = ''.join([c[1] + c[0] for c in zip(hex[::2], hex[1::2])])
-                totalSize += file.write(f'\n-- {i:03d}:{hex}')
-            totalSize += file.write(f'\n-- </{k}>\n')
-    return totalSize
+                total_size += file.write(f'\n-- {i:03d}:{hex}')
+            total_size += file.write(f'\n-- </{k}>\n')
+    return total_size
 
 
 def read_lua(file: typing.TextIO) -> Cart:
     code = file.read()
-    retCode = code
+    ret_code = code
     ret = Cart()
     for t, s, e in reversed(list(_tag.scanString(code))):
-        num, size, flip, chunkId = _TEXTCHUNKS[t[0]]
+        num, size, flip, chunk_id = _TEXTCHUNKS[t[0]]
         defined = {int(x[0]): ''.join([c[1] + c[0] for c in zip(x[1][::2], x[1][1::2])]) if flip else x[1] for x in t[1]}
         chunk = b''.join((bytes.fromhex(defined[i]).ljust(size, b'\0')
                          if i in defined else bytes(size) for i in range(num)))
-        ret[0, chunkId] = chunk
-        retCode = retCode[:s] + retCode[e:]
-    retCode = retCode.rstrip()
-    ret[0, ChunkID.CODE] = retCode.encode("ascii")
+        ret[0, chunk_id] = chunk
+        ret_code = ret_code[:s] + ret_code[e:]
+    ret_code = ret_code.rstrip()
+    ret[0, ChunkID.CODE] = ret_code.encode("ascii")
     return ret
 
 
@@ -145,13 +145,13 @@ _LANGLE, _RANGLE, _SLASH, _COLON = map(
 )
 _COMMENT = pp.Literal('--').suppress()
 
-_tagFirst = pp.Word(pp.alphas)
-_tagSecond = pp.match_previous_literal(_tagFirst).suppress()
-_newLine = pp.rest_of_line().copy().suppress()
-_tagStart = pp.LineStart() + _COMMENT + _LANGLE + _tagFirst + _RANGLE
-_tagEnd = pp.LineStart() + _COMMENT + _LANGLE + _SLASH + _tagSecond + _RANGLE
-_tagLine = pp.Group(_COMMENT + pp.Word(pp.nums) + _COLON + pp.Word(pp.hexnums))
-_tag = _tagStart + pp.Group(pp.ZeroOrMore(_tagLine)) + _tagEnd
+_tag_first = pp.Word(pp.alphas)
+_tag_second = pp.match_previous_literal(_tag_first).suppress()
+_new_line = pp.rest_of_line().copy().suppress()
+_tag_start = pp.LineStart() + _COMMENT + _LANGLE + _tag_first + _RANGLE
+_tag_end = pp.LineStart() + _COMMENT + _LANGLE + _SLASH + _tag_second + _RANGLE
+_tag_line = pp.Group(_COMMENT + pp.Word(pp.nums) + _COLON + pp.Word(pp.hexnums))
+_tag = _tag_start + pp.Group(pp.ZeroOrMore(_tag_line)) + _tag_end
 
 _TEXTCHUNKS = {  # maxnumber, size per row, flip nibbles
     "TILES": (256, 32, True, ChunkID.TILES),

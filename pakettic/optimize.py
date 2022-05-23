@@ -34,7 +34,7 @@ def loads_to_funcs(node: ast.Node):
 def funcs_to_loads(node: ast.Node):
     def _trans(node: ast.Node) -> ast.Node:
         if isinstance(node, ast.Func) and len(node.args) == 0:
-            code = printer.Formatter(doubleQuotes=True).format(node.body)
+            code = printer.Formatter(double_quotes=True).format(node.body)
             return ast.Call(func=ast.Name("load"), args=[ast.LiteralString(code)])
         else:
             return node

@@ -10,22 +10,23 @@ from pakettic import ast
 def format(node: ast.Node) -> str:
     return Formatter().format(node)
 
+
     # to check whether any in ranges (->MatchObject) / all outside ranges (->None)
 _hexy = re.compile('[0-9a-fA-F]').search
-_singleQuoteTranslation = str.maketrans({"\n": r"\n",
-                                         "\t": r"\t",
-                                         "\\": r"\\",
-                                         "'": r"\'"})
-_doubleQuoteTranslation = str.maketrans({"\n": r"\n",
-                                         "\t": r"\t",
-                                         "\\": r"\\",
-                                         "\"": r'\"'})
+_single_quote_translation = str.maketrans({"\n": r"\n",
+                                           "\t": r"\t",
+                                           "\\": r"\\",
+                                           "'": r"\'"})
+_double_quote_translation = str.maketrans({"\n": r"\n",
+                                           "\t": r"\t",
+                                           "\\": r"\\",
+                                           "\"": r'\"'})
 
 
 @dataclass
 class Formatter:
     indent: int = 0  # TODO: get rid of this?
-    doubleQuotes: bool = False
+    double_quotes: bool = False
 
     def format(self, node: ast.Node) -> str:
         tokens = self.__traverse(node)
@@ -33,10 +34,10 @@ class Formatter:
 
     @property
     def __quote(self):
-        return '"' if self.doubleQuotes else "'"
+        return '"' if self.double_quotes else "'"
 
     def __escape(self, s: str):
-        return f"{self.__quote}{s.translate(_doubleQuoteTranslation if self.doubleQuotes else _singleQuoteTranslation)}{self.__quote}"
+        return f"{self.__quote}{s.translate(_double_quote_translation if self.double_quotes else _single_quote_translation)}{self.__quote}"
 
     @ singledispatchmethod
     def __traverse(self, node: ast.Node):
@@ -174,7 +175,7 @@ class Formatter:
     def _(self, node: ast.Func):
         if len(node.args) == 0:
             self.indent += 1
-            fmt = Formatter(self.indent + 1, doubleQuotes=not self.doubleQuotes)
+            fmt = Formatter(self.indent + 1, double_quotes=not self.double_quotes)
             str = fmt.format(node.body)
             yield 'load'
             yield self.__escape(str)

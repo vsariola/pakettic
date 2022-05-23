@@ -88,48 +88,48 @@ def main():
         _, filename = os.path.split(os.path.splitext(filepath)[0])
         ext = '.lua' if args.lua else '.tic'
         outfile = os.path.join(args.output, filename + '.packed' + ext) if os.path.isdir(args.output) else args.output
-        originalSize = os.path.getsize(filepath)
-        filepathSliced = filepath[-30:] if len(filepath) > 30 else filepath
-        filepbar.set_description(f"Reading       {filepathSliced}")
+        original_size = os.path.getsize(filepath)
+        filepath_sliced = filepath[-30:] if len(filepath) > 30 else filepath
+        filepbar.set_description(f"Reading       {filepath_sliced}")
         try:
             cart = ticfile.read(filepath)
         except Exception as e:
             filepbar.write(f"Error reading {filepath}: {e}, skipping...")
             error = True
             continue
-        filepbar.set_description(f"Decompressing {filepathSliced}")
+        filepbar.set_description(f"Decompressing {filepath_sliced}")
         cart.update([((k[0], ticfile.ChunkID.CODE), zlib.decompress(v[2:], -15))
                     for k, v in cart.items() if k[1] == ticfile.ChunkID.CODE_ZIP])  # decompress zipped chunks
         cart[(0, ticfile.ChunkID.DEFAULT)] = b''  # add default chunk if it's missing
         cart = dict(c for i in args.chunks for c in cart.items() if c[0][1] == i)  # only include the chunks listed in args
-        filepbar.set_description(f"Compressing   {filepathSliced}")
+        filepbar.set_description(f"Compressing   {filepath_sliced}")
         outcart = cart.copy() if args.uncompressed else dict((k, v) if k[1] != ticfile.ChunkID.CODE else (
             (k[0], ticfile.ChunkID.CODE_ZIP), _compress(v)) for k, v in cart.items())
-        finalSize = ticfile.write(outcart, outfile)
-        codeChunks = [c for c in cart if c[1] == ticfile.ChunkID.CODE]
-        for c in codeChunks:
+        final_size = ticfile.write(outcart, outfile)
+        code_chunks = [c for c in cart if c[1] == ticfile.ChunkID.CODE]
+        for c in code_chunks:
             code = cart[c].decode("ascii")
             ast = parser.parse_string(code)
             ast = optimize.loads_to_funcs(ast)
 
             def _cost_func(root, best_cost):
-                nonlocal finalSize
+                nonlocal final_size
                 bytes = printer.format(root).encode("ascii")
                 key = c
                 if not args.uncompressed:
                     key = (c[0], ticfile.ChunkID.CODE_ZIP)
                     bytes = _compress(bytes)
                 diff = len(bytes) - len(outcart[key])
-                ret = finalSize + diff - args.target_size
+                ret = final_size + diff - args.target_size
                 if args.exact:
                     ret = abs(ret)
                 if ret < best_cost:
                     outcart[key] = bytes
-                    finalSize = ticfile.write(outcart, outfile)
+                    final_size = ticfile.write(outcart, outfile)
                 return ret
             ast = optimize.anneal(ast, iterations=args.iterations, cost_func=_cost_func,
                                   start_temp=args.start_temp, end_temp=args.end_temp)
-        filepbar.write(f"{filepathSliced:<30} Original: {originalSize} bytes. Packed: {finalSize} bytes.")
+        filepbar.write(f"{filepath_sliced:<30} Original: {original_size} bytes. Packed: {final_size} bytes.")
     sys.exit(1 if error else 0)
 
 

@@ -164,8 +164,8 @@ explist <<= pp.Group(exp + (COMMA + exp)[0, ...], aslist=True)
 # exp ::=  nil | false | true | Numeral | LiteralString | ‘...’ | functiondef | prefixexp | tableconstructor | exp binop exp | unop exp
 
 
-leftAssoc = lambda t: functools.reduce(lambda x, y: ast.BinOp(x, y[0], y[1]), zip(t[0][1::2], t[0][2::2]), t[0][0])
-rightAssoc = lambda t: functools.reduce(lambda x, y: ast.BinOp(y[1], y[0], x), zip(t[0][-2::-2], t[0][-3::-2]), t[0][-1])
+left_assoc = lambda t: functools.reduce(lambda x, y: ast.BinOp(x, y[0], y[1]), zip(t[0][1::2], t[0][2::2]), t[0][0])
+right_assoc = lambda t: functools.reduce(lambda x, y: ast.BinOp(y[1], y[0], x), zip(t[0][-2::-2], t[0][-3::-2]), t[0][-1])
 
 
 def unaryAction(t):
@@ -180,18 +180,18 @@ exp <<= pp.infixNotation(
     nil | false | true | Numeral | LiteralString | ellipsis | functiondef | prefixexp | tableconstructor,
     [
         (pp.oneOf('not # - ~'), 1, pp.OpAssoc.RIGHT, unaryAction),
-        ('^', 2, pp.opAssoc.RIGHT, rightAssoc),
-        (pp.oneOf('* / // %'), 2, pp.OpAssoc.LEFT, leftAssoc),
-        (pp.oneOf('+ -'), 2, pp.OpAssoc.LEFT, leftAssoc),
-        ('..', 2, pp.OpAssoc.LEFT, leftAssoc),
-        (pp.oneOf('<< >>'), 2, pp.OpAssoc.LEFT, leftAssoc),
-        ('&', 2, pp.OpAssoc.LEFT, leftAssoc),
-        ('~', 2, pp.OpAssoc.LEFT, leftAssoc),
-        ('|', 2, pp.OpAssoc.LEFT, leftAssoc),
-        (pp.oneOf('< > <= >= ~= ==', leftAssoc),
-         2, pp.OpAssoc.LEFT, leftAssoc),
-        ('and', 2, pp.OpAssoc.LEFT, leftAssoc),
-        ('or', 2, pp.OpAssoc.LEFT, leftAssoc),
+        ('^', 2, pp.opAssoc.RIGHT, right_assoc),
+        (pp.oneOf('* / // %'), 2, pp.OpAssoc.LEFT, left_assoc),
+        (pp.oneOf('+ -'), 2, pp.OpAssoc.LEFT, left_assoc),
+        ('..', 2, pp.OpAssoc.LEFT, left_assoc),
+        (pp.oneOf('<< >>'), 2, pp.OpAssoc.LEFT, left_assoc),
+        ('&', 2, pp.OpAssoc.LEFT, left_assoc),
+        ('~', 2, pp.OpAssoc.LEFT, left_assoc),
+        ('|', 2, pp.OpAssoc.LEFT, left_assoc),
+        (pp.oneOf('< > <= >= ~= ==', left_assoc),
+         2, pp.OpAssoc.LEFT, left_assoc),
+        ('and', 2, pp.OpAssoc.LEFT, left_assoc),
+        ('or', 2, pp.OpAssoc.LEFT, left_assoc),
     ]
 )
 
