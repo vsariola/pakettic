@@ -7,9 +7,17 @@ in Python (3.9+) and used especially for
 
 ## Installation
 
-Pakettic uses [poetry](https://python-poetry.org/) for managing
-dependencies. After checking out the repo, setup a virtual environment
-and install dependencies by running:
+Pakettic is not yet published in PyPI, but you can use pip to install it
+with the `-e` option. After checking out the repo to folder `pakettic`,
+run:
+
+```bash
+pip install -e path/to/pakettic
+```
+
+This will install it globally. Alternatively, if you can use
+[poetry](https://python-poetry.org/) to install it in a nice virtual
+environment with locked dependencies. Inside the pakettic folder, run:
 
 ```bash
 poetry install
@@ -17,16 +25,28 @@ poetry install
 
 ## Usage
 
-While inside the pakettic folder, run:
+To compress a cart, run:
+
+```bash
+pakettic path/to/cart.tic
+```
+
+If you installed using poetry into a virtual environment, you need to
+prepend `poetry run` before every command i.e.
 
 ```bash
 poetry run pakettic path/to/cart.tic
 ```
 
-See all command line options by running:
+Pakettic supports both .tic and .lua carts. Multiple input files may be
+defined. Input files are globbed, so `?`, `*`, and `**` work as
+wildcards for a single character, multiple characters and a directory,
+respectively.
+
+For a full list of command line options, see:
 
 ```bash
-poetry run pakettic --help
+pakettic --help
 ```
 
 Running all tests:
@@ -46,19 +66,27 @@ poetry run python -m unittest discover -s tests
   might get swapped and the right branches of `+-` ops and `*/` ops
   might get swapped.
 - There is a special `--|` operator that allows alternative expressions
-  to be tried. For example: `5--|4--|6` means that the algorithm will
-  try 4 and 6 in place of the 5, to see if it compresses better. This
-  will naturally show up as a comment in LUA so you have to continue the
-  expression on next line. `--|` has the lowest precedence, even lower
-  than `^` so put parentheses if you want to try more complicated
-  expressions e.g. `(x//256)--|(x>>8)`
+  to be tested to see if they compress better. For example: `5--|4--|6`
+  means that the algorithm will try 4 and 6 in place of the 5. This will
+  naturally show up as a comment in LUA so you will have to continue the
+  expression on next line if this is in the middle of an expression.
+  `--|` has the lowest precedence, even lower than `^` so put
+  parentheses if you want to try more complicated expressions e.g.
+  `(x//256)--|(x>>8)`
 - Unnecessary parentheses are removed so you do not have to worry about
   those.
 - `load'<some-code-here>'` is parsed as `function()<some-code-here>end`
-  so you can happily recompress already compressed carts.
+  so you can easily recompress already compressed carts.
 - Another special comment is a pair of `--{` and `--}`. The algorithm
-  tries to reorder all statements between these to see if it compresses
-  better.
+  assumes its ok to reorder all statements between these to see if it
+  compresses better. For example, to try whether `x=0y=0` or `y=0x=0`
+  compresses better, use:
+```lua
+ --{
+ x=0
+ y=0
+ --}
+```
 
 ## Known issues
 
