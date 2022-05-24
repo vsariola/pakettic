@@ -51,6 +51,8 @@ def main():
                            help='used with target-size to indicate that the target size should be reached exactly')
     argparser.add_argument('-i', '--iterations', type=int, default=10000, metavar='ITERS',
                            help='number of steps in the optimization algorithm. default: 10000')
+    argparser.add_argument('-p', '--print-best', action='store_const', const=True,
+                           help='pretty print the best solution when found')
     argparser.add_argument('--start-temp', type=float, default=1, metavar='BYTES',
                            help='starting temperature. default: 1')
     argparser.add_argument('--end-temp', type=float, default=0.1, metavar='BYTES',
@@ -126,6 +128,8 @@ def main():
                 if ret < best_cost:
                     outcart[key] = bytes
                     final_size = ticfile.write(outcart, outfile)
+                    if args.print_best:
+                        filepbar.write(f"{ret} bytes:\n{'-'*40}\n{printer.format(root, pretty=True).strip()}\n{'-'*40}")
                 return ret
             ast = optimize.anneal(ast, iterations=args.iterations, cost_func=_cost_func,
                                   start_temp=args.start_temp, end_temp=args.end_temp)

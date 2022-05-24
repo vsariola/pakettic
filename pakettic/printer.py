@@ -7,8 +7,8 @@ import re
 from pakettic import ast
 
 
-def format(node: ast.Node) -> str:
-    return Formatter().format(node)
+def format(node: ast.Node, pretty: bool = False) -> str:
+    return Formatter(pretty=pretty).format(node)
 
 
     # to check whether any in ranges (->MatchObject) / all outside ranges (->None)
@@ -27,6 +27,7 @@ _double_quote_translation = str.maketrans({"\n": r"\n",
 class Formatter:
     indent: int = 0  # TODO: get rid of this?
     double_quotes: bool = False
+    pretty: bool = False
 
     def format(self, node: ast.Node) -> str:
         tokens = self.__traverse(node)
@@ -55,20 +56,34 @@ class Formatter:
             yield token
             prevtoken = token
 
-    @ __traverse.register(ast.Block)
-    @ __traverse.register(ast.Perm)
-    def _(self, node: typing.Union[ast.Block, ast.Perm]):
+    @ __traverse.register
+    def _(self, node: ast.Block):
         for n in node.stats:
-            # yield ' ' * self.indent
+            if self.pretty:
+                yield '  ' * self.indent
             yield from self.__traverse(n)
-            # yield '\n'
+            if self.pretty:
+                yield '\n'
+
+    @ __traverse.register
+    def _(self, node: ast.Perm):
+        for i, n in enumerate(node.stats):
+            if self.pretty and i > 0:
+                yield '  ' * self.indent
+            yield from self.__traverse(n)
+            if self.pretty and i < len(node.stats) - 1:
+                yield '\n'
 
     @ __traverse.register
     def _(self, node: ast.Do):
         yield 'do'
+        if self.pretty:
+            yield '\n'
         self.indent += 1
         yield from self.__traverse(node.body)
         self.indent -= 1
+        if self.pretty:
+            yield '  ' * self.indent
         yield 'end'
 
     @ __traverse.register
@@ -119,14 +134,20 @@ class Formatter:
         yield 'while'
         yield from self.__traverse(node.condition)
         yield 'do'
+        if self.pretty:
+            yield '\n'
         self.indent += 1
         yield from self.__traverse(node.block)
         self.indent -= 1
+        if self.pretty:
+            yield '  ' * self.indent
         yield 'end'
 
     @ __traverse.register
     def _(self, node: ast.Repeat):
         yield 'repeat'
+        if self.pretty:
+            yield '\n'
         self.indent += 1
         yield from self.__traverse(node.block)
         self.indent -= 1
@@ -145,9 +166,13 @@ class Formatter:
             yield ','
             yield from self.__traverse(node.step)
         yield 'do'
+        if self.pretty:
+            yield '\n'
         self.indent += 1
         yield from self.__traverse(node.body)
         self.indent -= 1
+        if self.pretty:
+            yield '  ' * self.indent
         yield 'end'
 
     @ __traverse.register
@@ -163,9 +188,13 @@ class Formatter:
                 yield ','
             yield from self.__traverse(v)
         yield 'do'
+        if self.pretty:
+            yield '\n'
         self.indent += 1
         yield from self.__traverse(node.body)
         self.indent -= 1
+        if self.pretty:
+            yield '  ' * self.indent
         yield 'end'
 
     @ __traverse.register
@@ -174,9 +203,9 @@ class Formatter:
 
     @ __traverse.register
     def _(self, node: ast.Func):
-        if len(node.args) == 0:
+        if len(node.args) == 0 and not self.pretty:
             self.indent += 1
-            fmt = Formatter(self.indent + 1, double_quotes=not self.double_quotes)
+            fmt = Formatter(self.indent + 1, double_quotes=not self.double_quotes, pretty=False)
             str = fmt.format(node.body)
             yield 'load'
             yield self.__escape(str)
@@ -189,9 +218,13 @@ class Formatter:
                     yield ','
                 yield from str(v)
             yield ')'
+            if self.pretty:
+                yield '\n'
             self.indent += 1
             yield from self.__traverse(node.body)
             self.indent -= 1
+            if self.pretty:
+                yield '  ' * self.indent
             yield 'end'
 
     @ __traverse.register
@@ -249,10 +282,22 @@ class Formatter:
         yield 'if'
         yield from self.__traverse(node.test)
         yield 'then'
+        self.indent += 1
+        if self.pretty:
+            yield '\n'
         yield from self.__traverse(node.body)
+        self.indent -= 1
         if node.orelse is not None:
+            if self.pretty:
+                yield '  ' * self.indent
             yield 'else'
+            if self.pretty:
+                yield '\n'
+            self.indent += 1
             yield from self.__traverse(node.orelse)
+            self.indent -= 1
+        if self.pretty:
+            yield '  ' * self.indent
         yield 'end'
 
     @ __traverse.register
