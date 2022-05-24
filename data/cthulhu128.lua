@@ -1,3 +1,4 @@
+--{
 t = 0
 function TIC()
   cls()
@@ -19,11 +20,13 @@ function TIC()
         -- all equations arranged so that
         -- long sections are repeated, to
         -- please the DEFLATE algorithm
-        circ(80 * math.cos(t + a * 8 + math.cos(t + l)) -- r
+        circ(80 --| 70 --| 90
+          * math.cos(t + a * 8 + math.cos(t + l)) -- r
           * math.cos(t + a * 2) -- theta
           + l * e -- darker circles shifted to right
           + 120, -- center on screen
-          60 * math.cos(t + a * 8 + math.cos(t + l)) -- r
+          60 --| 70 --| 80
+          * math.cos(t + a * 8 + math.cos(t + l)) -- r
           * math.cos(t + a * 2 + 8) -- theta
           + l * 20, -- shift layers in y
           l, -- radius decreases as we go up
@@ -35,3 +38,5 @@ function TIC()
     end
   end
 end
+
+--}

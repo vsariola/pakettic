@@ -7,7 +7,7 @@ function TIC()
   print("pestis: under the waves", 9, 9, 12)
   for i = 0, 50 do
     --{
-    x = 120 --- 110 --- 130
+    x = 120 --| 110 --| 130
     y = 170
     w = 3
     --}

@@ -9,8 +9,8 @@ import operator
 
 pp.ParserElement.enablePackrat()
 
-LBRACK, RBRACK, LBRACE, RBRACE, LPAR, RPAR, EQ, COMMA, SEMI, COLON, PERIOD, DASH = map(
-    pp.Suppress, '[]{}()=,;:.-'
+LBRACK, RBRACK, LBRACE, RBRACE, LPAR, RPAR, EQ, COMMA, SEMI, COLON, PERIOD, VLINE = map(
+    pp.Suppress, '[]{}()=,;:.|'
 )
 keywords = {
     k.upper(): pp.Literal(k).suppress()
@@ -183,7 +183,7 @@ ellipsis = pp.Literal("...").set_parse_action(lambda: ast.Ellipsis())
 exp <<= pp.infixNotation(
     nil | false | true | Numeral | LiteralString | ellipsis | functiondef | prefixexp | tableconstructor,
     [
-        (pp.Literal('---').suppress(), 2, pp.opAssoc.LEFT, alt),
+        (pp.Literal('--|').suppress(), 2, pp.opAssoc.LEFT, alt),
         (pp.oneOf('not # - ~'), 1, pp.OpAssoc.RIGHT, unaryAction),
         ('^', 2, pp.opAssoc.RIGHT, right_assoc),
         (pp.oneOf('* / // %'), 2, pp.OpAssoc.LEFT, left_assoc),
@@ -269,7 +269,7 @@ field <<= (LBRACK + exp + RBRACK + EQ + exp).set_parse_action(lambda t: ast.Fiel
 fieldsep <<= COMMA | SEMI
 
 # ignore comments, WARNING: has to be last, as it updates all the rules recursively
-block.ignore(('--' + ~pp.FollowedBy(DASH | LBRACE | RBRACE)) + pp.restOfLine)
+block.ignore(('--' + ~pp.FollowedBy(VLINE | LBRACE | RBRACE)) + pp.restOfLine)
 
 
 def parse_string(x):

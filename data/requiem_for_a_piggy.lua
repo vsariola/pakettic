@@ -1,4 +1,5 @@
-t = 2e9 -- start time from large value to distribute clouds
+--{
+t = 2e9 --| 1e9 --| 3e9   -- start time from large value to distribute clouds
 function TIC()
   -- visuals:
   for z = 1, 9 do -- z=1 far, z=9 near
@@ -6,12 +7,15 @@ function TIC()
     for c = 0, y do -- loop over all columns
       r = math.sin(c) -- ~ random value
       x = r * z * t / 40 % 302 - 30 -- move near clouds faster
+      --{
       rect(c, y / 2, 1, y, 0) -- draw mountains
       circ(x, z * 21 + c - 30, 17 + r * 9, -z) -- clouds
       y = y + 6 * math.sin(r * 199) -- randomness to mountains
+      --}
     end
     print("v", x, z * 8) -- draw birds
   end
+  --{
   print(" Here lies the last fellow\n+who gave a piggy to psenough.", 50, 84) -- \\n becomes \n after pactic.py
   t = t - 1 -- t running backwards saves - sign somewhere
   -- music:
@@ -20,8 +24,9 @@ function TIC()
   -- slightly out of sync makes more
   -- organic sound
   i = t >> 9 & 3 -- which chord out of 4
-  q = i & 2 -- q=0 minor chord, q=2 second inversion major
   z = { 7, 2, 4, 0 } -- bass note of chord
+  --}
+  q = i & 2 -- q=0 minor chord, q=2 second inversion major
   sfx(
     0,
     18 + z[i + 1] + k * (k - q * k + 5 + 3 * q) // 2, -- note numbers for note k in chord
@@ -31,6 +36,8 @@ function TIC()
   -- lower channels loop faster
   )
 end
+
+--}
 
 -- <WAVES>
 -- 000:00000000ffffffff00000000ffffffff
