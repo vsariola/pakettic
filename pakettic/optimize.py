@@ -83,18 +83,19 @@ def mutate(root: ast.Node, r: random.Random):
                     mutations.append(_mutation)
 
     visit(new_root, _check_mutations)
-    available = sorted(_LOWERS.difference(used_names))  # important: keep sorted to get deterministic results
     used_names = sorted(used_names.difference(_RESERVED))
 
-    def var_repl(id_from, id_to):
+    def var_repl(id_a, id_b):
         def _mut():
             def _repl(node):
-                if type(node) == ast.Name and node.id == id_from:
-                    node.id = id_to
+                if type(node) == ast.Name:
+                    if node.id == id_a:
+                        node.id = id_b
+                    elif node.id == id_b:
+                        node.id = id_a
             visit(new_root, _repl)
         return _mut
-    if len(available) > 0:
-        mutations.extend((var_repl(f, t) for f in used_names for t in available))
+    mutations.extend((var_repl(a, b) for a in used_names for b in _LOWERS))
     mutation = r.choice(mutations)
     mutation()
     return new_root
