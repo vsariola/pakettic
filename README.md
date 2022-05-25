@@ -12,15 +12,15 @@ with the `-e` option. After checking out the repo to folder `pakettic`,
 run:
 
 ```bash
-pip install -e path/to/pakettic
+$ pip install -e path/to/pakettic
 ```
 
 This will install it globally. Alternatively, you can use
 [poetry](https://python-poetry.org/) to install it in a nice virtual
-environment with locked dependencies. Inside the pakettic folder, run:
+environment with locked dependencies. Inside the pakettic folder:
 
 ```bash
-poetry install
+$ poetry install
 ```
 
 ## Usage
@@ -28,21 +28,21 @@ poetry install
 To compress a cart, run:
 
 ```bash
-pakettic path/to/cart.tic
+$ pakettic path/to/cart.tic
 ```
 
 If your PATH is not configured to include pip installed executables, you
 can use
 
 ```bash
-python -m pakettic path/to/cart.tic
+$ python -m pakettic path/to/cart.tic
 ```
 
 If you installed using poetry into a virtual environment, you need to
 prepend `poetry run` before every command e.g.
 
 ```bash
-poetry run pakettic path/to/cart.tic
+$ poetry run pakettic path/to/cart.tic
 ```
 
 Pakettic supports both .tic and .lua carts. Multiple input files may be
@@ -53,13 +53,13 @@ respectively.
 For a full list of command line options, see:
 
 ```bash
-pakettic --help
+$ pakettic --help
 ```
 
 Running all tests:
 
 ```bash
-poetry run python -m unittest discover -s tests
+$ poetry run python -m unittest discover -s tests
 ```
 
 ## Features
@@ -70,10 +70,12 @@ then uses
 algorithm to randomly mutate the syntax tree, to see if it compresses
 better. Implemented mutations include:
   - shortening variable names
-  - flipping binary operators `*`, `+`, `&`, `~`, `|`, `>`, `<`, `>=`, `<=`, `~=`, and `==`
+  - flipping binary operators `*`, `+`, `&`, `~`, `|`, `>`, `<`, `>=`,
+    `<=`, `~=`, and `==`
   - swapping right branches of `+-` ops and `*/` ops
   - reordering statements: statements that can be reordered are marked with [magic comments](#magic-comments)
-  - alternative expressions: alternatives are marked with [magic comments](#magic-comments)
+  - alternative expressions: alternatives are marked with
+    [magic comments](#magic-comments)
 
 Internally, pakettic uses [zopfli](https://github.com/google/zopfli) for
 actual compression.
@@ -89,7 +91,8 @@ to worry about those.
 
 ### Reorderable statements
 
-The algorithm will try to reorder statements between `--{` and `--}`. For example:
+The algorithm will try to reorder statements between `--{` and `--}`.
+For example:
 
 ```lua
  --{
@@ -104,8 +107,8 @@ compresses better.
 ### Alternative expressions
 
 There is a special `--|` operator that allows alternative expressions to
-be tested, to see if they compress better. For example: `5--|4--|6` means
-that the algorithm will try 4 and 6 in place of the 5. This will
+be tested, to see if they compress better. For example: `5--|4--|6`
+means that the algorithm will try 4 and 6 in place of the 5. This will
 naturally show up as a comment in LUA so you will have to continue the
 expression on next line if this is in the middle of an expression. `--|`
 has the lowest precedence, even lower than `^` so put parentheses if you
