@@ -101,14 +101,14 @@ def mutate(root: ast.Node, r: random.Random):
     return new_root
 
 
-def anneal(state, cost_func: Callable, iterations: int, start_temp: float, end_temp: float, mutate_func: Callable = mutate):
+def anneal(state, cost_func: Callable, steps: int, start_temp: float, end_temp: float, mutate_func: Callable = mutate):
     current_cost = cost_func(state, inf)
     best_cost = current_cost
     best = state
     r = random.Random(0)  # deterministic seed, to have deterministic results
-    bar = tqdm.tqdm(range(iterations), position=1)
+    bar = tqdm.tqdm(range(steps), position=1)
     for i in bar:
-        alpha = i / (iterations - 1)
+        alpha = i / (steps - 1)
         temp = math.exp((1 - alpha) * math.log(start_temp) + alpha * math.log(end_temp))
         candidate = mutate_func(state, r)
         cand_cost = cost_func(candidate, best_cost)

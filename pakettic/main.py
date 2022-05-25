@@ -32,7 +32,7 @@ def _parse_chunks_arg(arg: str) -> list[ticfile.ChunkID]:
     return chunk_types
 
 
-_COMPRESSION_LEVELS = [
+_ZOPFLI_LEVELS = [
     {"iterations": 1, "split": False, "split_max": 0},
     {"iterations": 5, "split": False, "split_max": 0},
     {"iterations": 15, "split": True, "split_max": 1},
@@ -42,12 +42,12 @@ _COMPRESSION_LEVELS = [
 ]
 
 
-def _parse_compression(arg: str) -> dict:
+def _parse_zopfli_level(arg: str) -> dict:
     try:
         level = int(arg)
         if level < 0 or level > 5:
             raise argparse.ArgumentTypeError()
-        return _COMPRESSION_LEVELS[level]
+        return _ZOPFLI_LEVELS[level]
     except:
         raise argparse.ArgumentTypeError("Compression level should be an integer 0-5")
 
@@ -66,44 +66,46 @@ def main():
         prog='pakettic', description=f'Minify and compress TIC-80 fantasy console carts. v{version}',
         formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=33))
     argparser.add_argument('input', nargs='+', help='input file(s). ?, * and ** wildcards work')
-    argparser.add_argument('-o', '--output', default=os.getcwd(), help='output file or directory')
-    argparser.add_argument('-u', '--uncompressed', action='store_const', const=True,
-                           help='leave code chunks uncompressed, even when outputting a .tic file')
+    argparser.add_argument('-o', '--output', default=os.getcwd(), metavar='str', help='output file or directory')
     argparser.add_argument('-l', '--lua', action='store_const', const=True,
                            help='output .lua carts instead of .tic carts')
-    argparser.add_argument('-t', '--target-size', type=int, default=0, metavar='BYTES',
-                           help='when target size is reached, stop compressing prematurely. default: 0')
-    argparser.add_argument('--exact', action='store_const', const=True,
-                           help='used with target-size to indicate that the target size should be reached exactly')
-    argparser.add_argument('-i', '--iterations', type=int, default=10000, metavar='ITERS',
-                           help='number of steps in the optimization algorithm. default: 10000')
+    argparser.add_argument('-u', '--uncompressed', action='store_const', const=True,
+                           help='leave code chunks uncompressed, even when outputting a .tic file')
     argparser.add_argument('-p', '--print-best', action='store_const', const=True,
-                           help='pretty print the best solution when found')
-    argparser.add_argument('--start-temp', type=float, default=1, metavar='BYTES',
-                           help='starting temperature. default: 1')
-    argparser.add_argument('--end-temp', type=float, default=0.1, metavar='BYTES',
-                           help='ending temperature. default: 0.1')
-    argparser.add_argument('-z', '--compression', type=_parse_compression, default=_COMPRESSION_LEVELS[2],
-                           help='general zopfli aggressiveness, 0-5. default: 2')
-    argparser.add_argument('-s', '--split', action=argparse.BooleanOptionalAction,
-                           help='enable/disable block splitting in zopfli')
-    argparser.add_argument('-m', '--split-max', type=int, metavar='ITERS',
-                           help='maximum number of block splittings in zopfli. 0 = infinite')
-    argparser.add_argument('-n', '--zopfli-iterations', type=int, metavar='ITERS',
-                           help='how many iterations zopfli uses')
+                           help='pretty-print the best solution when found')
     argparser.add_argument('-c', '--chunks',
-                           default='code,default', metavar='CHUNKS', help='chunk types to include and their order. valid: ALL, ALL_EXCEPT_DEFAULT, or comma-separated list without spaces: BINARY,CODE,COVER_DEP,DEFAULT,FLAGS,MAP,MUSIC,PALETTE,PATTERNS_DEP,PATTERNS,SAMPLES,SCREEN,SPRITES,TILES,WAVEFORM. default: CODE,DEFAULT',
+                           default='code,default', metavar='str', help='chunk types to include and their order. valid: ALL, ALL_EXCEPT_DEFAULT, or comma-separated list without spaces: BINARY,CODE,COVER_DEP,DEFAULT,FLAGS,MAP,MUSIC,PALETTE,PATTERNS_DEP,PATTERNS,SAMPLES,SCREEN,SPRITES,TILES,WAVEFORM. default: CODE,DEFAULT',
                            type=_parse_chunks_arg)
+    optgroup = argparser.add_argument_group('optional arguments for tuning the simulated annealing')
+    optgroup.add_argument('-s', '--steps', type=int, default=10000, metavar='int',
+                          help='number of steps in the optimization algorithm. default: 10000')
+    optgroup.add_argument('-t', '--start-temp', type=float, default=1, metavar='float',
+                          help='starting temperature, >0. default: 1.0')
+    optgroup.add_argument('-T', '--end-temp', type=float, default=0.1, metavar='float',
+                          help='ending temperature, >0. default: 0.1')
+    optgroup.add_argument('--target-size', type=int, default=0, metavar='int',
+                          help='stop compression when target size is reached. default: 0')
+    optgroup.add_argument('--exact', action='store_const', const=True,
+                          help='used with --target-size to indicate that the size should be reached exactly')
+    zopfligroup = argparser.add_argument_group('optional arguments for tuning zopfli')
+    zopfligroup.add_argument('-z', '--zopfli-level', type=_parse_zopfli_level, default=_ZOPFLI_LEVELS[2], metavar='int',
+                             help='generic compression level for zopfli, 0-5. default: 2')
+    zopfligroup.add_argument('--iterations', type=int, metavar='int',
+                             help='number of iterations in zopfli. default: based on compression level')
+    zopfligroup.add_argument('--split', action=argparse.BooleanOptionalAction,
+                             help='enable or disable block splitting in zopfli. default: based on compression level')
+    zopfligroup.add_argument('--split-max', type=int, metavar='int',
+                             help='maximum number of block splittings in zopfli (0: infinite). default: based on compression level')
     args = argparser.parse_args()
 
     if args.lua:
         args.uncompressed = True  # Outputting LUA and compressing are mutually exclusive
     if args.split is None:
-        args.split = args.compression["split"]
+        args.split = args.zopfli_level["split"]
     if args.split_max is None:
-        args.split_max = args.compression["split_max"]
-    if args.zopfli_iterations is None:
-        args.zopfli_iterations = args.compression["iterations"]
+        args.split_max = args.zopfli_level["split_max"]
+    if args.iterations is None:
+        args.iterations = args.zopfli_level["iterations"]
 
     input = []
     # use glob to find files matching wildcards
@@ -136,7 +138,7 @@ def main():
         cart = dict(c for i in args.chunks for c in cart.items() if c[0][1] == i)  # only include the chunks listed in args
         filepbar.set_description(f"Compressing   {filepath_sliced}")
         outcart = cart.copy() if args.uncompressed else dict((k, v) if k[1] != ticfile.ChunkID.CODE else (
-            (k[0], ticfile.ChunkID.CODE_ZIP), _compress(v, args.split, args.split_max, args.zopfli_iterations)) for k, v in cart.items())
+            (k[0], ticfile.ChunkID.CODE_ZIP), _compress(v, args.split, args.split_max, args.iterations)) for k, v in cart.items())
         final_size = ticfile.write(outcart, outfile)
         code_chunks = [c for c in cart if c[1] == ticfile.ChunkID.CODE]
         for c in code_chunks:
@@ -150,7 +152,7 @@ def main():
                 key = c
                 if not args.uncompressed:
                     key = (c[0], ticfile.ChunkID.CODE_ZIP)
-                    bytes = _compress(bytes, args.split, args.split_max, args.zopfli_iterations)
+                    bytes = _compress(bytes, args.split, args.split_max, args.iterations)
                 diff = len(bytes) - len(outcart[key])
                 ret = final_size + diff - args.target_size
                 if args.exact:
@@ -161,7 +163,7 @@ def main():
                     if args.print_best:
                         filepbar.write(f"{ret} bytes:\n{'-'*40}\n{printer.format(root, pretty=True).strip()}\n{'-'*40}")
                 return ret
-            ast = optimize.anneal(ast, iterations=args.iterations, cost_func=_cost_func,
+            ast = optimize.anneal(ast, steps=args.steps, cost_func=_cost_func,
                                   start_temp=args.start_temp, end_temp=args.end_temp)
         filepbar.write(f"{filepath_sliced:<30} Original: {original_size} bytes. Packed: {final_size} bytes.")
     sys.exit(1 if error else 0)
