@@ -15,7 +15,7 @@ run:
 pip install -e path/to/pakettic
 ```
 
-This will install it globally. Alternatively, if you can use
+This will install it globally. Alternatively, you can use
 [poetry](https://python-poetry.org/) to install it in a nice virtual
 environment with locked dependencies. Inside the pakettic folder, run:
 
@@ -31,8 +31,15 @@ To compress a cart, run:
 pakettic path/to/cart.tic
 ```
 
+If your PATH is not configured to include pip installed executables, you
+can use
+
+```bash
+python -m pakettic path/to/cart.tic
+```
+
 If you installed using poetry into a virtual environment, you need to
-prepend `poetry run` before every command i.e.
+prepend `poetry run` before every command e.g.
 
 ```bash
 poetry run pakettic path/to/cart.tic
@@ -57,36 +64,52 @@ poetry run python -m unittest discover -s tests
 
 ## Features
 
-- The packer parses the LUA source code and then uses a
-  [simulated annealing](https://en.wikipedia.org/wiki/Simulated_annealing)
-  algorithm to randomly make mutations to the abstract syntax tree, to
-  see if it packs better.
-- The algorithm swaps randomly expressions, so `a+b` can become `b+a`.
-  Operators `*`, `+`, `&`, `~`, `|`, `>`, `<`, `>=`, `<=`, `~=`, `==`
-  might get swapped and the right branches of `+-` ops and `*/` ops
-  might get swapped.
-- There is a special `--|` operator that allows alternative expressions
-  to be tested to see if they compress better. For example: `5--|4--|6`
-  means that the algorithm will try 4 and 6 in place of the 5. This will
-  naturally show up as a comment in LUA so you will have to continue the
-  expression on next line if this is in the middle of an expression.
-  `--|` has the lowest precedence, even lower than `^` so put
-  parentheses if you want to try more complicated expressions e.g.
-  `(x//256)--|(x>>8)`
-- Unnecessary parentheses are removed so you do not have to worry about
-  those.
-- `load'<some-code-here>'` is parsed as `function()<some-code-here>end`
-  so you can easily recompress already compressed carts.
-- Another special comment is a pair of `--{` and `--}`. The algorithm
-  assumes its ok to reorder all statements between these to see if it
-  compresses better. For example, to try whether `x=0y=0` or `y=0x=0`
-  compresses better, use:
+Pakettic first parses the LUA-script to an abstract syntax tree, and
+then uses
+[simulated annealing](https://en.wikipedia.org/wiki/Simulated_annealing)
+algorithm to randomly mutate the syntax tree, to see if it compresses
+better. Implemented mutations include:
+  - shortening variable names
+  - flipping binary operators `*`, `+`, `&`, `~`, `|`, `>`, `<`, `>=`, `<=`, `~=`, and `==`
+  - swapping right branches of `+-` ops and `*/` ops
+  - reordering statements: statements that can be reordered are marked with [magic comments](#magic-comments)
+  - alternative expressions: alternatives are marked with [magic comments](#magic-comments)
+
+Internally, pakettic uses [zopfli](https://github.com/google/zopfli) for
+actual compression.
+
+`load'...'` is parsed as `function()...end` so you can easily recompress
+already compressed carts. Conversely, `function()...end` is replaced
+with `load'...'` during compression.
+
+Unnecessary parentheses are removed from expressions so you do not have
+to worry about those.
+
+## Magic comments
+
+### Reorderable statements
+
+The algorithm will try to reorder statements between `--{` and `--}`. For example:
+
 ```lua
  --{
- x=0
- y=0
+ a="hello"
+ b="world"
  --}
 ```
+
+will try both `a="hello"b="world"` and `b="world"a="hello"` to see if
+compresses better.
+
+### Alternative expressions
+
+There is a special `--|` operator that allows alternative expressions to
+be tested, to see if they compress better. For example: `5--|4--|6` means
+that the algorithm will try 4 and 6 in place of the 5. This will
+naturally show up as a comment in LUA so you will have to continue the
+expression on next line if this is in the middle of an expression. `--|`
+has the lowest precedence, even lower than `^` so put parentheses if you
+want to try more complicated expressions e.g. `(x//256)--|(x>>8)`
 
 ## Known issues
 
