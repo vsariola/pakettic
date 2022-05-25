@@ -4,6 +4,7 @@
 -- force exit. But it also makes
 -- TIC-80 ~ 10% or more slower. So,
 -- let's disable it.
+--{
 debug.sethook()
 
 S = { -1, 2, 0, 0, --speed overlap chords i&i
@@ -26,10 +27,13 @@ S = { -1, 2, 0, 0, --speed overlap chords i&i
 t = 0
 
 function TIC()
+  --{
   -- music:
   for k = 0, 3 do -- loop over channels
+    --{
     p = t // 1024 -- part
     e = t / 2 ^ S[k + 1]
+    --}
     -- get note from current pattern
     n = S[8 * S[8 * k + p + 7] + 31 + e // 16 % 8]
     -- calculate volume for channel k
@@ -56,6 +60,7 @@ function TIC()
   cls()
   -- pride first: hide cursor
   poke(16379, 1)
+  --}
   for z = 5, .07, -.02 do
     l = t / (5 + p) + z * (p % 4) ^ 3
     -- draw tunnel
@@ -81,7 +86,7 @@ function TIC()
     end
   end
 
-
+  --{
   -- increase time, exit when done
   t = t + 1, t < 8306 or exit()
 
@@ -94,6 +99,7 @@ function TIC()
     1,
     2
   )
+  --}
 
   --uncomment these for skipping time
   --if btn(2) and t>100 then t=t-100 end
@@ -101,6 +107,7 @@ function TIC()
 end
 
 s = math.sin
+--}
 -- <TILES>
 -- 001:eccccccccc888888caaaaaaaca888888cacccccccacc0ccccacc0ccccacc0ccc
 -- 002:ccccceee8888cceeaaaa0cee888a0ceeccca0ccc0cca0c0c0cca0c0c0cca0c0c
