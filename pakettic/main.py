@@ -76,6 +76,8 @@ def main():
     argparser.add_argument('-c', '--chunks',
                            default='code,default', metavar='str', help='chunk types to include and their order. valid: ALL, ALL_EXCEPT_DEFAULT, or comma-separated list without spaces: BINARY,CODE,COVER_DEP,DEFAULT,FLAGS,MAP,MUSIC,PALETTE,PATTERNS_DEP,PATTERNS,SAMPLES,SCREEN,SPRITES,TILES,WAVEFORM. default: CODE,DEFAULT',
                            type=_parse_chunks_arg)
+    argparser.add_argument('--pedantic', action='store_const', const=True, default=False,
+                           help='write DEFAULT chunk in full even when it is the last chunk')
     optgroup = argparser.add_argument_group('optional arguments for tuning the simulated annealing')
     optgroup.add_argument('-s', '--steps', type=int, default=10000, metavar='int',
                           help='number of steps in the optimization algorithm. default: 10000')
@@ -159,7 +161,7 @@ def main():
                     ret = abs(ret)
                 if ret < best_cost:
                     outcart[key] = bytes
-                    final_size = ticfile.write(outcart, outfile)
+                    final_size = ticfile.write(outcart, outfile, pedantic=args.pedantic)
                     if args.print_best:
                         filepbar.write(f"{ret} bytes:\n{'-'*40}\n{printer.format(root, pretty=True).strip()}\n{'-'*40}")
                 return ret

@@ -36,12 +36,12 @@ class ChunkID(IntEnum):
 Cart = dict[tuple[int, ChunkID], ByteString]
 
 
-def write_tic(cart: Cart, file: typing.BinaryIO, chop_default=True) -> int:
+def write_tic(cart: Cart, file: typing.BinaryIO, pedantic=False) -> int:
     total_size = 0
     for i, bank_chunk in enumerate(cart):
         # if this the last chunk and it's a DEFAULT chunk
         bank, chunk = bank_chunk
-        if chop_default and chunk == ChunkID.DEFAULT and i == len(cart) - 1:
+        if not pedantic and chunk == ChunkID.DEFAULT and i == len(cart) - 1:
             total_size += file.write(struct.pack("<B", ChunkID.DEFAULT))
             break
         packed_bank_chunk = (bank << 5) + (chunk & 31)
@@ -121,7 +121,7 @@ def read(filepath: str) -> Cart:
             return read_tic(file)
 
 
-def write(cart: Cart, filepath: str, ext: str = None) -> int:
+def write(cart: Cart, filepath: str, ext: str = None, pedantic=False) -> int:
     """Write a tic cart to the disk
             Parameters:
                 cart (dict): A dictionary with (bank,chunkId) keys and ByteStrings values
@@ -137,7 +137,7 @@ def write(cart: Cart, filepath: str, ext: str = None) -> int:
             return write_lua(cart, file)
     else:
         with io.open(filepath, "wb") as file:
-            return write_tic(cart, file)
+            return write_tic(cart, file, pedantic=pedantic)
 
 
 _LANGLE, _RANGLE, _SLASH, _COLON = map(
