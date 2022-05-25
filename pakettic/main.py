@@ -32,6 +32,32 @@ def _parse_chunks_arg(arg: str) -> list[ticfile.ChunkID]:
     return chunk_types
 
 
+_COMPRESSION_LEVELS = [
+    {"iterations": 1, "split": False, "split_max": 0},
+    {"iterations": 5, "split": False, "split_max": 0},
+    {"iterations": 15, "split": True, "split_max": 1},
+    {"iterations": 15, "split": True, "split_max": 3},
+    {"iterations": 200, "split": True, "split_max": 0},
+    {"iterations": 500, "split": True, "split_max": 0}
+]
+
+
+def _parse_compression(arg: str) -> dict:
+    try:
+        level = int(arg)
+        if level < 0 or level > 5:
+            raise argparse.ArgumentTypeError()
+        return _COMPRESSION_LEVELS[level]
+    except:
+        raise argparse.ArgumentTypeError("Compression level should be an integer 0-5")
+
+
+def _compress(bytes, split, split_max, iterations):
+    c = zopfli.ZopfliCompressor(zopfli.ZOPFLI_FORMAT_ZLIB, block_splitting=split,
+                                block_splitting_max=split_max, iterations=iterations)
+    return (c.compress(bytes) + c.flush())[: -4]
+
+
 def main():
     sys.setrecursionlimit(100000)  # TODO: find out why the parser recurses so heavily and reduce that
 
@@ -57,24 +83,28 @@ def main():
                            help='starting temperature. default: 1')
     argparser.add_argument('--end-temp', type=float, default=0.1, metavar='BYTES',
                            help='ending temperature. default: 0.1')
-    argparser.add_argument('--zopfli-split', action='store_const', const=True,
-                           help='enable block splitting in zopfli')
-    argparser.add_argument('--zopfli-split-max', type=int, default=0, metavar='ITERS',
-                           help='maximum number of block splittings. default: 0')
-    argparser.add_argument('--zopfli-iterations', type=int, default=14, metavar='ITERS',
-                           help='how many iterations zopfli uses. default: 14')
+    argparser.add_argument('-z', '--compression', type=_parse_compression, default=_COMPRESSION_LEVELS[2],
+                           help='general zopfli aggressiveness, 0-5. default: 2')
+    argparser.add_argument('-s', '--split', action=argparse.BooleanOptionalAction,
+                           help='enable/disable block splitting in zopfli')
+    argparser.add_argument('-m', '--split-max', type=int, metavar='ITERS',
+                           help='maximum number of block splittings in zopfli. 0 = infinite')
+    argparser.add_argument('-n', '--zopfli-iterations', type=int, metavar='ITERS',
+                           help='how many iterations zopfli uses')
     argparser.add_argument('-c', '--chunks',
                            default='code,default', metavar='CHUNKS', help='chunk types to include and their order. valid: ALL, ALL_EXCEPT_DEFAULT, or comma-separated list without spaces: BINARY,CODE,COVER_DEP,DEFAULT,FLAGS,MAP,MUSIC,PALETTE,PATTERNS_DEP,PATTERNS,SAMPLES,SCREEN,SPRITES,TILES,WAVEFORM. default: CODE,DEFAULT',
                            type=_parse_chunks_arg)
     args = argparser.parse_args()
 
-    def _compress(bytes):
-        c = zopfli.ZopfliCompressor(zopfli.ZOPFLI_FORMAT_ZLIB, block_splitting=args.zopfli_split,
-                                    block_splitting_max=args.zopfli_split_max, iterations=args.zopfli_iterations)
-        return (c.compress(bytes) + c.flush())[: -4]
-
     if args.lua:
         args.uncompressed = True  # Outputting LUA and compressing are mutually exclusive
+    if args.split is None:
+        args.split = args.compression["split"]
+    if args.split_max is None:
+        args.split_max = args.compression["split_max"]
+    if args.zopfli_iterations is None:
+        args.zopfli_iterations = args.compression["iterations"]
+
     input = []
     # use glob to find files matching wildcards
     # if a string does not contain a wildcard, glob will return it as is.
@@ -106,7 +136,7 @@ def main():
         cart = dict(c for i in args.chunks for c in cart.items() if c[0][1] == i)  # only include the chunks listed in args
         filepbar.set_description(f"Compressing   {filepath_sliced}")
         outcart = cart.copy() if args.uncompressed else dict((k, v) if k[1] != ticfile.ChunkID.CODE else (
-            (k[0], ticfile.ChunkID.CODE_ZIP), _compress(v)) for k, v in cart.items())
+            (k[0], ticfile.ChunkID.CODE_ZIP), _compress(v, args.split, args.split_max, args.zopfli_iterations)) for k, v in cart.items())
         final_size = ticfile.write(outcart, outfile)
         code_chunks = [c for c in cart if c[1] == ticfile.ChunkID.CODE]
         for c in code_chunks:
@@ -120,7 +150,7 @@ def main():
                 key = c
                 if not args.uncompressed:
                     key = (c[0], ticfile.ChunkID.CODE_ZIP)
-                    bytes = _compress(bytes)
+                    bytes = _compress(bytes, args.split, args.split_max, args.zopfli_iterations)
                 diff = len(bytes) - len(outcart[key])
                 ret = final_size + diff - args.target_size
                 if args.exact:
