@@ -3,6 +3,10 @@ name = "pakettic"
 version = "0.1.0"
 description = "A tool for minifying and compressing TIC-80 fantasy console carts"
 authors = ["Veikko Sariola <5684185+vsariola@users.noreply.github.com>"]
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/vsariola/pakettic"
+keywords = ["TIC-80", "Fantasy Console", "Compression"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
