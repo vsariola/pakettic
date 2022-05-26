@@ -237,6 +237,10 @@ class Alt(Node):
     """
     alts: list
 
+    @property
+    def precedence(self):
+        return self.alts[0].precedence
+
 
 @dataclass
 class Perm(Node):
