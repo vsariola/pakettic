@@ -11,7 +11,6 @@ def format(node: ast.Node, pretty: bool = False) -> str:
     return Formatter(pretty=pretty).format(node)
 
 
-    # to check whether any in ranges (->MatchObject) / all outside ranges (->None)
 _hexy = re.compile('[0-9a-fA-F]').search
 _single_quote_translation = str.maketrans({"\n": r"\n",
                                            "\t": r"\t",
@@ -25,7 +24,7 @@ _double_quote_translation = str.maketrans({"\n": r"\n",
 
 @dataclass
 class Formatter:
-    indent: int = 0  # TODO: get rid of this?
+    indent: int = 0
     double_quotes: bool = False
     pretty: bool = False
 

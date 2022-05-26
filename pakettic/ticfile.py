@@ -7,13 +7,12 @@ from typing import IO, ByteString
 from enum import IntEnum
 import typing
 
-from pakettic.parser import COLON
-# https://github.com/nesbox/TIC-80/wiki/.tic-File-Format
-#
-# Each bank has chunks, which may or may not be present
-
 
 class ChunkID(IntEnum):
+    """
+    Enumerates different chunk types in a TIC-80 Cart
+    See: https://github.com/nesbox/TIC-80/wiki/.tic-File-Format
+    """
     TILES = 1          # 8 banks, copied to RAM at 0x4000...0x5FFF
     SPRITES = 2        # 8 banks, copied to RAM at 0x6000...0x7FFF
     MAP = 4            # 8 banks, copied to RAM at 0x8000...0xFF7F
@@ -37,6 +36,14 @@ Cart = dict[tuple[int, ChunkID], ByteString]
 
 
 def write_tic(cart: Cart, file: typing.BinaryIO, pedantic=False) -> int:
+    """
+    Write a .tic cart to a file
+        Parameters:
+            cart (dict): A dictionary with (bank,chunkId) keys and ByteStrings values
+            file (BinaryIO): File to which write the cart
+        Returns:
+            filesize (int): Size of the just-written cart on disk
+    """
     total_size = 0
     for i, bank_chunk in enumerate(cart):
         # if this the last chunk and it's a DEFAULT chunk
@@ -55,6 +62,13 @@ def write_tic(cart: Cart, file: typing.BinaryIO, pedantic=False) -> int:
 
 
 def read_tic(file: typing.BinaryIO) -> Cart:
+    """
+    Read a .tic cart from a file
+        Parameters:
+            file (typing.BinaryIO): File from which to load the cart
+        Returns:
+            cart (dict): A dictionary with (bank,chunkId) keys and ByteStrings values
+    """
     cart = {}
     while True:
         bank_and_chunk_bytes = file.read(1)  # byte, with 3 highest bits bank and 5 lowest bits chunk type
@@ -71,6 +85,14 @@ def read_tic(file: typing.BinaryIO) -> Cart:
 
 
 def write_lua(cart: Cart, file: typing.TextIO) -> int:
+    """
+    Write a .lua cart to a file
+        Parameters:
+            cart (dict): A dictionary with (bank,chunkId) keys and ByteStrings values
+            file (TextIO): File to which write the cart
+        Returns:
+            filesize (int): Size of the just-written cart on disk
+    """
     total_size = 0
     total_size += file.write(cart[0, ChunkID.CODE].decode("ascii"))
     for k, v in _TEXTCHUNKS.items():
@@ -90,6 +112,13 @@ def write_lua(cart: Cart, file: typing.TextIO) -> int:
 
 
 def read_lua(file: typing.TextIO) -> Cart:
+    """
+    Read a .lua cart from a file
+        Parameters:
+            file (TextIO): File from which to load the cart
+        Returns:
+            cart (dict): A dictionary with (bank,chunkId) keys and ByteStrings values
+    """
     code = file.read()
     ret_code = code
     ret = Cart()
@@ -106,11 +135,12 @@ def read_lua(file: typing.TextIO) -> Cart:
 
 
 def read(filepath: str) -> Cart:
-    """Read a tic cart from the disk, detecting the file type based on extension
-            Parameters:
-                filepath (str): Path of the cart on disk
-            Returns:
-                cart (dict): A dictionary with (bank,chunkId) keys and ByteStrings values
+    """
+    Read a tic cart from the disk, detecting the file type based on extension
+        Parameters:
+            filepath (str): Path of the cart on disk
+        Returns:
+            cart (dict): A dictionary with (bank,chunkId) keys and ByteStrings values
     """
     _, ext = os.path.splitext(filepath)
     if ext == '.lua':
@@ -122,13 +152,14 @@ def read(filepath: str) -> Cart:
 
 
 def write(cart: Cart, filepath: str, ext: str = None, pedantic=False) -> int:
-    """Write a tic cart to the disk
-            Parameters:
-                cart (dict): A dictionary with (bank,chunkId) keys and ByteStrings values
-                filepath (str): Path of the cart on disk
-                ext (str): Optional file format extension. If omitted, the format is auto-detected from the filepath.
-            Returns:
-                filesize (int): Size of the just-written cart on disk
+    """
+    Write a tic cart to the disk
+        Parameters:
+            cart (dict): A dictionary with (bank,chunkId) keys and ByteStrings values
+            filepath (str): Path of the cart on disk
+            ext (str): Optional file format extension. If omitted, the format is auto-detected from the filepath.
+        Returns:
+            filesize (int): Size of the just-written cart on disk
     """
     if ext is None:
         _, ext = os.path.splitext(filepath)

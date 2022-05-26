@@ -1,10 +1,7 @@
 import argparse
 from glob import glob
-import io
-import itertools
 import os
 import sys
-import warnings
 import zlib
 import pkg_resources
 import zopfli
@@ -14,7 +11,7 @@ import tqdm
 
 
 def _parse_chunks_arg(arg: str) -> list[ticfile.ChunkID]:
-    """Parses the chunk type arg (ALL, ALL_EXCEPT_DEFAULT or comma-separated list of chunk types) into a list of chunk types"""
+    """Parse the --chunks command line arugment into a list of chunk types"""
     a = arg.upper()
     if a == 'ALL' or a == 'ALL_EXCEPT_DEFAULT':
         chunk_types = [e for e in ticfile.ChunkID if e !=
@@ -43,6 +40,7 @@ _ZOPFLI_LEVELS = [
 
 
 def _parse_zopfli_level(arg: str) -> dict:
+    """Parse the --zopfli-level command line argument into a dictionary containing the zopfli parameters"""
     try:
         level = int(arg)
         if level < 0 or level > 5:
@@ -53,12 +51,14 @@ def _parse_zopfli_level(arg: str) -> dict:
 
 
 def _compress(bytes, split, split_max, iterations):
+    """Compress a byte string using Zopfli, dropping the check sum"""
     c = zopfli.ZopfliCompressor(zopfli.ZOPFLI_FORMAT_ZLIB, block_splitting=split,
                                 block_splitting_max=split_max, iterations=iterations)
     return (c.compress(bytes) + c.flush())[: -4]
 
 
 def main():
+    """Main entrypoint for the command line program"""
     sys.setrecursionlimit(100000)  # TODO: find out why the parser recurses so heavily and reduce that
 
     version = pkg_resources.get_distribution('pakettic').version

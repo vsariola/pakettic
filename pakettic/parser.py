@@ -1,11 +1,8 @@
-import itertools
 from sys import prefix
-from typing import Literal
 from xml.dom.expatbuilder import DOCUMENT_NODE
 from pakettic import ast
 import pyparsing as pp
 import functools
-import operator
 
 pp.ParserElement.enablePackrat()
 

@@ -3,9 +3,8 @@ import copy
 from functools import singledispatch
 import math
 import random
-from typing import Callable, Union
+from typing import Any, Callable, Union
 import tqdm
-import zopfli
 from pakettic import ast, parser, printer
 
 _FLIPPABLE_OPS = ["*", "+", "&", "~", "|", ">", "<", ">=", "<=", "~=", "=="]
@@ -21,27 +20,50 @@ _RESERVED = {"TIC", "SCN", "BDR", "OVR", "circ", "circb", "elli", "ellib", "clip
              "debug", "math"}
 
 
-def loads_to_funcs(node: ast.Node):
+def loads_to_funcs(root: ast.Node) -> ast.Node:
+    """
+    Transforms an abstract syntax tree by converting all load'...' into function()...end
+        Parameters:
+            root (ast.Node): Root of the abstract syntax tree
+        Returns:
+            new_root (ast.Node): Root of the new, transformed abstract syntax tree
+    """
     def _trans(node: ast.Node) -> ast.Node:
         if isinstance(node, ast.Call) and node.func == ast.Name("load") and len(node.args) == 1 and isinstance(node.args[0], ast.LiteralString):
             body = parser.parse_string(node.args[0].value)
             return ast.Func(body=body, args=[])
         else:
             return node
-    return apply_trans(node, _trans)
+    return apply_trans(root, _trans)
 
 
-def funcs_to_loads(node: ast.Node):
+def funcs_to_loads(root: ast.Node):
+    """
+    Transforms an abstract syntax tree by converting all function()...end into load'...'
+        Parameters:
+            root (ast.Node): Root of the abstract syntax tree
+        Returns:
+            new_root (ast.Node): Root of the new, transformed abstract syntax tree
+    """
     def _trans(node: ast.Node) -> ast.Node:
         if isinstance(node, ast.Func) and len(node.args) == 0:
             code = printer.Formatter(double_quotes=True).format(node.body)
             return ast.Call(func=ast.Name("load"), args=[ast.LiteralString(code)])
         else:
             return node
-    return apply_trans(node, _trans)
+    return apply_trans(root, _trans)
 
 
-def mutate(root: ast.Node, r: random.Random):
+def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
+    """
+    Mutates an abstract syntax tree by making small modification to it,
+    e.g. flipping binary operators or changing variable names
+        Parameters:
+            root (ast.Node): Root of the abstract syntax tree
+            rand (random.Random): Random number generator to use
+        Returns:
+            new_root (ast.Node): Root of the new, mutated abstract syntax tree
+    """
     new_root = copy.deepcopy(root)
     mutations = []
 
@@ -96,12 +118,25 @@ def mutate(root: ast.Node, r: random.Random):
             visit(new_root, _repl)
         return _mut
     mutations.extend((var_repl(a, b) for a in used_names for b in _LOWERS))
-    mutation = r.choice(mutations)
+    mutation = rand.choice(mutations)
     mutation()
     return new_root
 
 
-def anneal(state, cost_func: Callable, steps: int, start_temp: float, end_temp: float, mutate_func: Callable = mutate):
+def anneal(state: Any, cost_func: Callable[[Any, int], int], steps: int, start_temp: float, end_temp: float, mutate_func: Callable[[Any], Any] = mutate) -> Any:
+    """
+    Perform simulated annealing optimization, using exponential temperature schedule.
+    See https://en.wikipedia.org/wiki/Simulated_annealing
+        Parameters:
+            state: Starting state for the
+            cost_func (Callable[[Any, int], int]): Callback function, with the first parameter the state and second parameter the cost of best solution so far
+            steps (int): how many steps the optimization algorithms takes
+            start_temp (float): starting temperature for the optimization
+            end_temp (float): end temperature for the optimization
+            mutate_func (Callable[[Any], Any]): Callback function state -> state that performs a small mutation in the code
+        Returns:
+            best (Any): The best solution found
+    """
     current_cost = cost_func(state, inf)
     best_cost = current_cost
     best = state
@@ -125,8 +160,16 @@ def anneal(state, cost_func: Callable, steps: int, start_temp: float, end_temp: 
 
 
 @singledispatch
-def apply_trans(node: ast.Node, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(node)
+def apply_trans(root: ast.Node, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
+    """
+    Applies a transformation to an abstract syntax tree recursively
+        Parameters:
+            root (ast.Node): Root of the syntax tree to transform
+            trans (Callable[[ast.Node], ast.Node]): Callback function that takes a node and returns a transformed node
+        Returns:
+            new_root (ast.Node): Root of the new, transformed abstract syntax tree
+    """
+    return trans(root)
 
 
 @ apply_trans.register
@@ -226,6 +269,12 @@ def _(node: ast.UnaryOp, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
 
 @singledispatch
 def visit(node: ast.Node, visitor: Callable[[ast.Node], None]):
+    """
+    Visit each node of an abstract syntax tree recursively
+        Parameters:
+            node (ast.Node): A (root) node of the syntax tree to visit
+            visitor (Callable[[ast.Node], Node]): Callback function called for each node
+    """
     visitor(node)
 
 
