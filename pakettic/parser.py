@@ -150,6 +150,8 @@ label.set_parse_action(lambda toks: ast.Label(toks[0]))
 
 # funcname ::= Name {‘.’ Name} [‘:’ Name]
 funcname <<= Name + (PERIOD + Name)[0, ...] + (COLON + Name)[0, 1]
+funcname.set_parse_action(lambda t: functools.reduce(lambda x, y: ast.Index(x, ast.LiteralString(y)), t[1:], ast.Name(t[0])))
+# TODO: is there a special meaning for that last COLON Name
 
 # varlist ::= var {‘,’ var}
 varlist <<= pp.Group(var + (COMMA + var)[0, ...], aslist=True)
