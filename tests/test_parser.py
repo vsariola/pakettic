@@ -120,7 +120,7 @@ class TestFlowControl(unittest.TestCase):
     def test_ranged_for_loop(self):
         self.assertEqual(
             parser.chunk.parse_string('for i = 0,5 do break end')[0],
-            ast.Block([ast.ForRange(var='i', lb=ast.Numeral(0), ub=ast.Numeral(5), step=None, body=ast.Block([ast.Break()]))]))
+            ast.Block([ast.ForRange(var=ast.Name('i'), lb=ast.Numeral(0), ub=ast.Numeral(5), step=None, body=ast.Block([ast.Break()]))]))
 
 
 class TestBranching(unittest.TestCase):
@@ -148,7 +148,7 @@ class TestComments(unittest.TestCase):
 class TestFunction(unittest.TestCase):
     def test_function(self):
         self.assertEqual(parser.chunk.parse_string('f=function(x) end')[0], ast.Block([
-                         ast.Assign([ast.Name('f')], [ast.Func(args=['x'], body=ast.Block([]))])]))
+                         ast.Assign([ast.Name('f')], [ast.Func(args=[ast.Name('x')], body=ast.Block([]))])]))
 
 
 class TestCall(unittest.TestCase):
@@ -193,5 +193,5 @@ class TestUnaryOperators(unittest.TestCase):
 class TestLocals(unittest.TestCase):
     def test_local_vars(self):
         got = parser.chunk.parse_string('local x = 5')[0]
-        expected = Block([Local(targets=['x'], values=[Numeral(5)])])
+        expected = Block([Local(targets=[ast.Name('x')], values=[Numeral(5)])])
         self.assertEqual(got, expected)
