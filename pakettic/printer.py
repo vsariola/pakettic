@@ -205,9 +205,9 @@ class Formatter:
         if len(node.args) == 0 and not self.pretty:
             self.indent += 1
             fmt = Formatter(self.indent + 1, double_quotes=not self.double_quotes, pretty=False)
-            str = fmt.format(node.body)
+            s = fmt.format(node.body)
             yield 'load'
-            yield self.__escape(str)
+            yield self.__escape(s)
             self.indent -= 1
         else:
             yield 'function'
@@ -215,7 +215,7 @@ class Formatter:
             for i, v in enumerate(node.args):
                 if i > 0:
                     yield ','
-                yield from str(v)
+                yield from self.__traverse(v)
             yield ')'
             if self.pretty:
                 yield '\n'

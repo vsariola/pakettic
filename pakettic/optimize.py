@@ -214,7 +214,7 @@ def _(node: ast.Local, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
 
 @ apply_trans.register
 def _(node: ast.Func, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.Func(args=node.args, body=apply_trans(node.body, trans)))
+    return trans(ast.Func(args=[apply_trans(a, trans) for a in node.args], body=apply_trans(node.body, trans)))
 
 
 @ apply_trans.register
@@ -346,6 +346,8 @@ def _(node: ast.Local, visitor: Callable[[ast.Node], None]):
 @ visit.register
 def _(node: ast.Func, visitor: Callable[[ast.Node], None]):
     visitor(node)
+    for a in node.args:
+        visit(a, visitor)
     visit(node.body, visitor)
 
 
