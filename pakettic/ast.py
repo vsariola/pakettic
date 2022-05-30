@@ -250,3 +250,4 @@ class Perm(Node):
     Not part of standard LUA, but created using pakettic magic comments.
     """
     stats: list
+    allow_reorder: Boolean = True

@@ -98,11 +98,12 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
                     node.alts[0], node.alts[i + 1] = node.alts[i + 1], node.alts[0]
                 mutations.append(_mutation)
         elif type(node) == ast.Perm:
-            for i in range(len(node.stats)):
-                for j in range(i + 1, len(node.stats)):
-                    def _mutation(i=i, j=j):
-                        node.stats[i], node.stats[j] = node.stats[j], node.stats[i]
-                    mutations.append(_mutation)
+            if node.allow_reorder:
+                for i in range(len(node.stats)):
+                    for j in range(i + 1, len(node.stats)):
+                        def _mutation(i=i, j=j):
+                            node.stats[i], node.stats[j] = node.stats[j], node.stats[i]
+                        mutations.append(_mutation)
         elif type(node) == ast.Func:
             if len(node.args) == 0:
                 def _mutation():

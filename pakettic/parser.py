@@ -98,8 +98,11 @@ break_ = BREAK.set_parse_action(lambda toks: ast.Break())
 goto = (GOTO + Name).set_parse_action(lambda toks: ast.Goto(toks[0]))
 doblock = DO + block + END
 doblock.set_parse_action(lambda t: ast.Do(t[0]))
-permblock = pp.Literal('--{').suppress() + pp.Group(stat[0, ...], aslist=True) + pp.Literal('--}').suppress()
-permblock.set_parse_action(lambda t: ast.Perm(t[0]))
+permblockstart = pp.Combine(pp.Literal('--{') + pp.Optional('!'))
+permblockstart.set_parse_action(lambda t:
+                                len(t[0]) < 4)
+permblock = permblockstart + pp.Group(stat[0, ...], aslist=True) + pp.Literal('--}').suppress()
+permblock.set_parse_action(lambda t: ast.Perm(t[1], allow_reorder=t[0]))
 while_ = WHILE + exp + DO + block + END
 while_.set_parse_action(lambda toks: ast.While(toks[0], toks[1]))
 repeat = REPEAT + block + UNTIL + exp

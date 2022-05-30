@@ -104,6 +104,10 @@ For example:
 will try both `a="hello"b="world"` and `b="world"a="hello"` to see if
 compresses better.
 
+Statements between `--{!` and `--}` are not ordered, so you can make
+blocks of statements that are kept in order within a pair of `--{` and
+`--}` tags.
+
 ### Alternative expressions
 
 There is a special `--|` operator that allows alternative expressions to
