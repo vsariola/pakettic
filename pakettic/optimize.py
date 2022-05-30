@@ -103,6 +103,11 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
                     def _mutation(i=i, j=j):
                         node.stats[i], node.stats[j] = node.stats[j], node.stats[i]
                     mutations.append(_mutation)
+        elif type(node) == ast.Func:
+            if len(node.args) == 0:
+                def _mutation():
+                    node.oneline = not node.oneline
+                mutations.append(_mutation)
 
     visit(new_root, _check_mutations)
     used_names = sorted(used_names.difference(_RESERVED))
