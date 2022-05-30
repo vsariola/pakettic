@@ -66,12 +66,23 @@ class Formatter:
 
     @ __traverse.register
     def _(self, node: ast.Perm):
+        if self.pretty:
+            if node.allow_reorder:
+                yield '--{'
+            else:
+                yield '--{!'
+            yield '\n'
+            yield '  ' * self.indent
         for i, n in enumerate(node.stats):
             if self.pretty and i > 0:
                 yield '  ' * self.indent
             yield from self.__traverse(n)
             if self.pretty and i < len(node.stats) - 1:
                 yield '\n'
+        if self.pretty:
+            yield '\n'
+            yield '  ' * self.indent
+            yield '--}'
 
     @ __traverse.register
     def _(self, node: ast.Do):
@@ -342,6 +353,13 @@ class Formatter:
     @ __traverse.register
     def _(self, node: ast.Alt):
         yield from self.__traverse(node.alts[0])
+        if self.pretty and len(node.alts) > 0:
+            for i, v in enumerate(node.alts[1:]):
+                yield '--|'
+                yield from self.__traverse(v)
+                if i == len(node.alts) - 2:
+                    yield '\n'
+                    yield '  ' * self.indent
 
     @ __traverse.register
     def _(self, node: ast.Numeral):
