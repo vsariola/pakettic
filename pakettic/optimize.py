@@ -258,7 +258,7 @@ def _(node: ast.Local, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
 
 @ apply_trans.register
 def _(node: ast.Func, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.Func(args=[apply_trans(a, trans) for a in node.args], body=apply_trans(node.body, trans)))
+    return trans(ast.Func(args=[apply_trans(a, trans) for a in node.args], body=apply_trans(node.body, trans), oneline=node.oneline))
 
 
 @ apply_trans.register
@@ -303,7 +303,7 @@ def _(node: ast.Alt, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
 
 @ apply_trans.register
 def _(node: ast.Perm, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.Perm([apply_trans(s, trans) for s in node.stats]))
+    return trans(ast.Perm([apply_trans(s, trans) for s in node.stats], allow_reorder=node.allow_reorder))
 
 
 @ apply_trans.register
