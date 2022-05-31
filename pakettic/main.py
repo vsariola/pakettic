@@ -91,7 +91,7 @@ def main():
                           help='number of steps in the optimization algorithm. default: 10000')
     optgroup.add_argument('-H', '--lahc-history', type=int, default=500, metavar='int',
                           help='history length in late acceptance hill climbing')
-    optgroup.add_argument('-m', '--lahc-margin', type=int, default=0, metavar='int',
+    optgroup.add_argument('-m', '--lahc-margin', type=float, default=0, metavar='float',
                           help='initialize the lahc history with initial_cost + margin (in bytes). Default: 0')
     optgroup.add_argument('-t', '--start-temp', type=float, default=1, metavar='float',
                           help='starting temperature, >0. default: 1.0')
