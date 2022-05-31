@@ -78,9 +78,21 @@ def main():
                            type=_parse_chunks_arg)
     argparser.add_argument('--pedantic', action='store_const', const=True, default=False,
                            help='write DEFAULT chunk in full even when it is the last chunk')
-    optgroup = argparser.add_argument_group('optional arguments for tuning the simulated annealing')
+    optgroup = argparser.add_argument_group('optional arguments for the optimization algorithm')
+    optgroup.add_argument('-a', '--algorithm',
+                          action='store',
+                          type=str.lower,
+                          metavar='str',
+                          help="optimization algorithm, LAHC (late acceptance hill climbing) or ANNEAL (simulated annealing). Default: LAHC",
+                          required=False,
+                          choices=["lahc", "anneal"],
+                          default="lahc")
     optgroup.add_argument('-s', '--steps', type=int, default=10000, metavar='int',
                           help='number of steps in the optimization algorithm. default: 10000')
+    optgroup.add_argument('-H', '--lahc-history', type=int, default=500, metavar='int',
+                          help='history length in late acceptance hill climbing')
+    optgroup.add_argument('-m', '--lahc-margin', type=int, default=0, metavar='int',
+                          help='initialize the lahc history with initial_cost + margin (in bytes). Default: 0')
     optgroup.add_argument('-t', '--start-temp', type=float, default=1, metavar='float',
                           help='starting temperature, >0. default: 1.0')
     optgroup.add_argument('-T', '--end-temp', type=float, default=0.1, metavar='float',
@@ -165,8 +177,12 @@ def main():
                     if args.print_best:
                         filepbar.write(f"{ret} bytes:\n{'-'*40}\n{printer.format(root, pretty=True).strip()}\n{'-'*40}")
                 return ret
-            ast = optimize.anneal(ast, steps=args.steps, cost_func=_cost_func,
-                                  start_temp=args.start_temp, end_temp=args.end_temp)
+            if args.algorithm == 'lahc':
+                ast = optimize.lahc(ast, steps=args.steps, cost_func=_cost_func,
+                                    list_length=args.lahc_history, init_margin=args.lahc_margin)
+            else:
+                ast = optimize.anneal(ast, steps=args.steps, cost_func=_cost_func,
+                                      start_temp=args.start_temp, end_temp=args.end_temp)
         filepbar.write(f"{filepath_sliced:<30} Original: {original_size} bytes. Packed: {final_size} bytes.")
     sys.exit(1 if error else 0)
 

@@ -165,6 +165,44 @@ def anneal(state: Any, cost_func: Callable[[Any, int], int], steps: int, start_t
     return best
 
 
+def lahc(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_length: int, init_margin: int, mutate_func: Callable[[Any], Any] = mutate) -> Any:
+    """
+    Optimize a function using Late Acceptance Hill Climbing
+    See https://arxiv.org/pdf/1806.09328.pdf
+        Parameters:
+            state: Starting state for the
+            cost_func (Callable[[Any, int], int]): Callback function, with the first parameter the state and second parameter the cost of best solution so far
+            steps (int): how many steps the optimization algorithms takes
+            list_length (int): length of the history in the algorithm
+            init_margin (int): how much margin, in bytes, to add to the initial best cost
+            mutate_func (Callable[[Any], Any]): Callback function state -> state that performs a small mutation in the code
+        Returns:
+            best (Any): The best solution found
+    """
+    current_cost = cost_func(state, inf)
+    best_cost = current_cost
+    history = [best_cost + init_margin] * list_length
+    best = state
+    r = random.Random(0)  # deterministic seed, to have deterministic results
+    bar = tqdm.tqdm(range(steps), position=1)
+    for i in bar:
+        candidate = mutate_func(state, r)
+        cand_cost = cost_func(candidate, best_cost)
+        v = i % list_length
+        if cand_cost < history[v] or cand_cost <= current_cost:
+            current_cost = cand_cost
+            state = candidate
+        if current_cost < history[v]:
+            history[v] = current_cost
+        if cand_cost < best_cost:
+            best_cost = cand_cost
+            best = candidate
+        bar.set_description(f"B:{best_cost} C:{current_cost} A:{cand_cost}")
+        if best_cost <= 0:
+            break
+    return best
+
+
 @singledispatch
 def apply_trans(root: ast.Node, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
     """
