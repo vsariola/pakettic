@@ -83,16 +83,18 @@ def main():
                           action='store',
                           type=str.lower,
                           metavar='str',
-                          help="optimization algorithm, LAHC (late acceptance hill climbing) or ANNEAL (simulated annealing). Default: LAHC",
+                          help="optimization algorithm, LAHC (late acceptance hill climbing), DLAS (diversified late acceptance search) or ANNEAL (simulated annealing). Default: %(default)s",
                           required=False,
-                          choices=["lahc", "anneal"],
-                          default="lahc")
+                          choices=["lahc", "dlas", "anneal"],
+                          default="dlas")
     optgroup.add_argument('-s', '--steps', type=int, default=10000, metavar='int',
-                          help='number of steps in the optimization algorithm. default: 10000')
+                          help='number of steps in the optimization algorithm. default: %(default)d')
     optgroup.add_argument('-H', '--lahc-history', type=int, default=500, metavar='int',
-                          help='history length in late acceptance hill climbing')
-    optgroup.add_argument('-m', '--lahc-margin', type=float, default=0, metavar='float',
-                          help='initialize the lahc history with initial_cost + margin (in bytes). Default: 0')
+                          help='history length in late acceptance hill climbing. default: %(default)d')
+    optgroup.add_argument('-D', '--dlas-history', type=int, default=5, metavar='int',
+                          help='history length in diversified late acceptance search. default: %(default)d')
+    optgroup.add_argument('-m', '--margin', type=float, default=0, metavar='float',
+                          help='initialize the lahc/dlas history with initial_cost + margin (in bytes). Default: %(default).0f')
     optgroup.add_argument('-t', '--start-temp', type=float, default=1, metavar='float',
                           help='starting temperature, >0. default: 1.0')
     optgroup.add_argument('-T', '--end-temp', type=float, default=0.1, metavar='float',
@@ -179,7 +181,10 @@ def main():
                 return ret
             if args.algorithm == 'lahc':
                 ast = optimize.lahc(ast, steps=args.steps, cost_func=_cost_func,
-                                    list_length=args.lahc_history, init_margin=args.lahc_margin)
+                                    list_length=args.lahc_history, init_margin=args.margin)
+            elif args.algorithm == 'dlas':
+                ast = optimize.dlas(ast, steps=args.steps, cost_func=_cost_func,
+                                    list_length=args.dlas_history, init_margin=args.margin)
             else:
                 ast = optimize.anneal(ast, steps=args.steps, cost_func=_cost_func,
                                       start_temp=args.start_temp, end_temp=args.end_temp)

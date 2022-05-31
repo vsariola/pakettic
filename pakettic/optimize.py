@@ -203,6 +203,54 @@ def lahc(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_leng
     return best
 
 
+def dlas(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_length: int, init_margin: int, mutate_func: Callable[[Any], Any] = mutate) -> Any:
+    """
+    Optimize a function using Diversified Late Acceptance Search
+    See https://arxiv.org/pdf/1806.09328.pdf
+        Parameters:
+            state: Starting state for the
+            cost_func (Callable[[Any, int], int]): Callback function, with the first parameter the state and second parameter the cost of best solution so far
+            steps (int): how many steps the optimization algorithms takes
+            list_length (int): length of the history in the algorithm
+            init_margin (int): how much margin, in bytes, to add to the initial best cost
+            mutate_func (Callable[[Any], Any]): Callback function state -> state that performs a small mutation in the code
+        Returns:
+            best (Any): The best solution found
+    """
+    current_cost = cost_func(state, inf)
+    best_cost = current_cost
+    cost_max = best_cost + init_margin
+    history = [cost_max] * list_length
+    N = list_length
+    best = state
+    r = random.Random(0)  # deterministic seed, to have deterministic results
+    bar = tqdm.tqdm(range(steps), position=1)
+    for i in bar:
+        prev_cost = current_cost
+        candidate = mutate_func(state, r)
+        cand_cost = cost_func(candidate, best_cost)
+        v = i % list_length
+        if cand_cost == current_cost or cand_cost < cost_max:
+            current_cost = cand_cost
+            state = candidate
+        if current_cost > history[v]:
+            history[v] = current_cost
+        elif current_cost < history[v] and current_cost < prev_cost:
+            if history[v] == cost_max:
+                N -= 1
+            history[v] = current_cost
+            if N <= 0:
+                cost_max = max(history)
+                N = history.count(cost_max)
+        if cand_cost < best_cost:
+            best_cost = cand_cost
+            best = candidate
+        bar.set_description(f"B:{best_cost} C:{current_cost} M:{cost_max} A:{cand_cost}")
+        if best_cost <= 0:
+            break
+    return best
+
+
 @singledispatch
 def apply_trans(root: ast.Node, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
     """
