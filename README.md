@@ -65,10 +65,12 @@ $ poetry run python -m unittest discover -s tests
 ## Features
 
 Pakettic first parses the LUA-script to an abstract syntax tree, and
-then uses
+then uses a local optimization algorithm -
 [simulated annealing](https://en.wikipedia.org/wiki/Simulated_annealing)
-algorithm to randomly mutate the syntax tree, to see if it compresses
-better. Implemented mutations include:
+or
+[late acceptance hill climbing](https://en.wikipedia.org/wiki/Late_acceptance_hill_climbing)
+- to randomly mutate the syntax tree & see if it compresses better.
+Implemented mutations include:
   - shortening variable names
   - flipping binary operators `*`, `+`, `&`, `~`, `|`, `>`, `<`, `>=`,
     `<=`, `~=`, and `==`
