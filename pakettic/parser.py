@@ -114,8 +114,8 @@ if_ = IF + exp + THEN + block + \
     pp.Group(pp.ZeroOrMore(pp.Group(ELSEIF + exp + THEN + block))) + \
     pp.Optional(ELSE + block, default=None) + END
 # The AST does not know anything about elseif; split them into else if
-if_.set_parse_action(lambda toks: functools.reduce(lambda x, y: ast.If(x.test, body=x.body, orelse=[ast.If(
-    test=y[0], body=y[1], orelse=x.orelse)]), reversed(toks[2]), ast.If(test=toks[0], body=toks[1], orelse=toks[3])))
+if_.set_parse_action(lambda toks: functools.reduce(lambda x, y: ast.If(x.test, body=x.body, orelse=ast.Block([ast.If(
+    test=y[0], body=y[1], orelse=x.orelse)])), reversed(toks[2]), ast.If(test=toks[0], body=toks[1], orelse=toks[3])))
 for_in = FOR + namelist + IN + \
     explist + DO + block + END
 for_in.set_parse_action(lambda toks: ast.ForIn(toks[0], toks[1], toks[2]))

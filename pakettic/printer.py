@@ -49,9 +49,8 @@ class Formatter:
         for token in tokens:
             if len(token) == 0:
                 continue
-            if token != 'if' or prevtoken != 'else':
-                if prevtoken[-1].isalpha() and (token[0].isalpha() or token[0].isdigit()) or (prevtoken[-1].isdigit() and bool(_hexy(token[0]))):
-                    yield ' '
+            if prevtoken[-1].isalpha() and (token[0].isalpha() or token[0].isdigit()) or (prevtoken[-1].isdigit() and bool(_hexy(token[0]))):
+                yield ' '
             yield token
             prevtoken = token
 
@@ -297,6 +296,18 @@ class Formatter:
             yield '\n'
         yield from self.__traverse(node.body)
         self.indent -= 1
+        while node.orelse is not None and len(node.orelse.stats) == 1 and type(node.orelse.stats[0]) == ast.If:
+            node = node.orelse.stats[0]
+            if self.pretty:
+                yield '  ' * self.indent
+            yield 'elseif'
+            yield from self.__traverse(node.test)
+            yield 'then'
+            self.indent += 1
+            if self.pretty:
+                yield '\n'
+            yield from self.__traverse(node.body)
+            self.indent -= 1
         if node.orelse is not None:
             if self.pretty:
                 yield '  ' * self.indent
