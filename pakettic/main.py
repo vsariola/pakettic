@@ -74,7 +74,7 @@ def main():
     argparser.add_argument('-p', '--print-best', action='store_const', const=True,
                            help='pretty-print the best solution when found')
     argparser.add_argument('-c', '--chunks',
-                           default='code,default', metavar='str', help='chunk types to include and their order. valid: ALL, ALL_EXCEPT_DEFAULT, or comma-separated list without spaces: BINARY,CODE,COVER_DEP,DEFAULT,FLAGS,MAP,MUSIC,PALETTE,PATTERNS_DEP,PATTERNS,SAMPLES,SCREEN,SPRITES,TILES,WAVEFORM. default: CODE,DEFAULT',
+                           default='code,default', metavar='str', help='chunk types to include and their order. valid: ALL, ALL_EXCEPT_DEFAULT, or comma-separated list without spaces: BINARY,CODE,COVER_DEP,DEFAULT,FLAGS,MAP,MUSIC,PALETTE,PATTERNS_DEP,PATTERNS,SAMPLES,SCREEN,SPRITES,TILES,WAVEFORM. default: %(default)s',
                            type=_parse_chunks_arg)
     argparser.add_argument('--pedantic', action='store_const', const=True, default=False,
                            help='write DEFAULT chunk in full even when it is the last chunk')
@@ -96,11 +96,11 @@ def main():
     optgroup.add_argument('-m', '--margin', type=float, default=0, metavar='float',
                           help='initialize the lahc/dlas history with initial_cost + margin (in bytes). Default: %(default).0f')
     optgroup.add_argument('-t', '--start-temp', type=float, default=1, metavar='float',
-                          help='starting temperature, >0. default: 1.0')
+                          help='starting temperature for simulated annealing, >0. default: %(default).1f')
     optgroup.add_argument('-T', '--end-temp', type=float, default=0.1, metavar='float',
-                          help='ending temperature, >0. default: 0.1')
+                          help='ending temperature for simulated annealing, >0. default: %(default).1f')
     optgroup.add_argument('--target-size', type=int, default=0, metavar='int',
-                          help='stop compression when target size is reached. default: 0')
+                          help='stop compression when target size is reached. default: %(default)d')
     optgroup.add_argument('--exact', action='store_const', const=True,
                           help='used with --target-size to indicate that the size should be reached exactly')
     zopfligroup = argparser.add_argument_group('optional arguments for tuning zopfli')
