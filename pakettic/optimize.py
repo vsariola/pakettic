@@ -12,7 +12,7 @@ _FLIPPED_OPS = ["*", "+", "&", "~", "|", "<", ">", "<=", ">=", "~=", "=="]
 _PLUSMINUS_OPS = ["+", "-"]
 _MULDIV_OPS = ["*", "/"]
 _AND_OR_XOR_OPS = ["&", "|", "~"]
-_LOWERS = set(chr(i) for i in range(ord('a'), ord('z') + 1))
+_LOWERS = list(chr(i) for i in range(ord('a'), ord('z') + 1))
 _RESERVED = {"TIC", "SCN", "BDR", "OVR", "circ", "circb", "elli", "ellib", "clip", "cls", "font", "line", "map", "pix",
              "print", "rect", "rectb", "spr", "tri", "trib", "textri", "btn", "btnp", "key", "keyp", "mouse",
              "music", "sfx", "memcpy", "memset", "pmem", "peek", "peek1", "peek2", "peek4", "poke", "poke1",
