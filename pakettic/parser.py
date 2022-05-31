@@ -10,7 +10,7 @@ LBRACK, RBRACK, LBRACE, RBRACE, LPAR, RPAR, EQ, COMMA, SEMI, COLON, PERIOD, VLIN
     pp.Suppress, '[]{}()=,;:.|'
 )
 keywords = {
-    k.upper(): pp.Keyword(k).suppress()
+    k.upper(): pp.Combine(pp.Literal(k) + ~pp.Char(pp.alphanums + "_")) .suppress()
     for k in """\
     return break do end while if then elseif else for in function local repeat until nil false true and or not goto
     """.split()
