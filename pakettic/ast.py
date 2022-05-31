@@ -122,7 +122,7 @@ class Func(Node):
     """Represents a function definition the abstract syntax tree"""
     args: list
     body: Block
-    oneline: Boolean = False
+    oneline: Boolean = True
 
 
 @dataclass
