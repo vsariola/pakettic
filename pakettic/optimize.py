@@ -13,11 +13,17 @@ _PLUSMINUS_OPS = ["+", "-"]
 _MULDIV_OPS = ["*", "/"]
 _AND_OR_XOR_OPS = ["&", "|", "~"]
 _LOWERS = list(chr(i) for i in range(ord('a'), ord('z') + 1))
-_RESERVED = {"TIC", "SCN", "BDR", "OVR", "circ", "circb", "elli", "ellib", "clip", "cls", "font", "line", "map", "pix",
-             "print", "rect", "rectb", "spr", "tri", "trib", "textri", "btn", "btnp", "key", "keyp", "mouse",
-             "music", "sfx", "memcpy", "memset", "pmem", "peek", "peek1", "peek2", "peek4", "poke", "poke1",
-             "poke2", "poke4", "sync", "vbank", "fget", "fset", "mget", "mset", "exit", "reset", "time", "tstamp", "trace",
-             "debug", "math"}
+_RESERVED = {'_G', 'TIC', 'SCN', 'BDR', 'OVR', '_VERSION', 'assert', 'btn', 'btnp',
+             'circ', 'circb', 'clip', 'cls', 'collectgarbage', 'coroutine', 'debug',
+             'dofile', 'elli', 'ellib', 'error', 'exit', 'fget', 'font', 'fset',
+             'getmetatable', 'ipairs', 'key', 'keyp', 'line', 'load', 'loadfile',
+             'map', 'math', 'memcpy', 'memset', 'mget', 'mouse', 'mset', 'music',
+             'next', 'package', 'pairs', 'pcall', 'peek', 'peek1', 'peek2', 'peek4',
+             'pix', 'pmem', 'poke', 'poke1', 'poke2', 'poke4', 'print', 'rawequal',
+             'rawget', 'rawlen', 'rawset', 'rect', 'rectb', 'require', 'reset',
+             'select', 'setmetatable', 'sfx', 'spr', 'str', 'string', 'sync',
+             'table', 'textri', 'time', 'tonumber', 'tostring', 'trace', 'tri',
+             'trib', 'tstamp', 'ttri', 'type', 'vbank', 'xpcall'}
 
 
 def loads_to_funcs(root: ast.Node) -> ast.Node:
