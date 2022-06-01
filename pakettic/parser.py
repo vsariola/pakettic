@@ -116,10 +116,10 @@ if_ = IF + exp + THEN + block + \
 # The AST does not know anything about elseif; split them into else if
 if_.set_parse_action(lambda toks: functools.reduce(lambda x, y: ast.If(x.test, body=x.body, orelse=ast.Block([ast.If(
     test=y[0], body=y[1], orelse=x.orelse)])), reversed(toks[2]), ast.If(test=toks[0], body=toks[1], orelse=toks[3])))
-for_in = FOR + namelist + IN + \
+for_in = FOR + pp.Group(namelist, aslist=True) + IN + \
     explist + DO + block + END
 for_in.set_parse_action(lambda toks: ast.ForIn(toks[0], toks[1], toks[2]))
-local_var = LOCAL + namelist + EQ + explist
+local_var = LOCAL + pp.Group(namelist, aslist=True) + EQ + explist
 local_var.set_parse_action(lambda toks: ast.Local(toks[0], toks[1]))
 func_def = FUNCTION + funcname + funcbody
 func_def.set_parse_action(lambda toks: ast.Assign([toks[0]], [toks[1]]))
@@ -161,7 +161,7 @@ varlist <<= pp.Group(var + (COMMA + var)[0, ...], aslist=True)
 
 # namelist ::= Name {‘,’ Name}
 _Name = Name.copy().set_parse_action(lambda t: ast.Name(t[0]))
-namelist <<= pp.Group(_Name + (COMMA + _Name)[0, ...], aslist=True)
+namelist <<= _Name + (COMMA + _Name)[0, ...]
 
 # explist ::= exp {‘,’ exp}
 explist <<= pp.Group(exp + (COMMA + exp)[0, ...], aslist=True)
@@ -253,7 +253,8 @@ funcbody <<= LPAR + pp.Optional(parlist, default=[]) + RPAR + block + END
 funcbody.set_parse_action(lambda toks: ast.Func(args=toks[0], body=toks[1]))
 
 # parlist: := namelist[‘,’ ‘...’] | ‘...’
-parlist <<= namelist + (COMMA + ellipsis)[0, 1] | ellipsis
+parlist <<= pp.Group(namelist + (COMMA + ellipsis)[0, 1] | ellipsis, aslist=True)
+
 
 # tableconstructor: := ‘{’ [fieldlist] ‘}’
 tableconstructor <<= pp.Group(LBRACE + fieldlist[0, 1] + RBRACE, aslist=True)
