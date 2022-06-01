@@ -5,7 +5,7 @@ from pakettic import ticfile
 
 class TestCarts(unittest.TestCase):
     def test_tic_carts(self):
-        with io.open("data/cracklebass.tic", "rb") as file:
+        with io.open("tests/data/cracklebass.tic", "rb") as file:
             bytes = file.read()
             input = io.BytesIO(bytes)
             c = ticfile.read_tic(input)
@@ -14,7 +14,7 @@ class TestCarts(unittest.TestCase):
             self.assertEqual(bytes, output.getbuffer())
 
     def test_lua_carts(self):
-        with io.open("data/cracklebass.lua", "r") as file:
+        with io.open("tests/data/cracklebass.lua", "r") as file:
             self.maxDiff = None
             str = file.read()
             input = io.StringIO(str)
