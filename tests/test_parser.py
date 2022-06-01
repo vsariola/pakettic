@@ -134,7 +134,7 @@ class TestBranching(unittest.TestCase):
 
     def test_elseif(self):
         self.assertEqual(parser.chunk.parse_string('if true then elseif true then else break end')[
-                         0], ast.Block([ast.If(test=ast.Boolean(True), body=ast.Block([]), orelse=[ast.If(test=ast.Boolean(True), body=ast.Block([]), orelse=ast.Block([ast.Break()]))])]))
+                         0], ast.Block([ast.If(test=ast.Boolean(True), body=ast.Block([]), orelse=ast.Block([ast.If(test=ast.Boolean(True), body=ast.Block([]), orelse=ast.Block([ast.Break()]))]))]))
 
 
 class TestComments(unittest.TestCase):
