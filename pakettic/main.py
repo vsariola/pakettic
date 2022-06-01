@@ -132,8 +132,10 @@ def main():
         sys.exit('When multiple input files are defined, the output must be a directory.')
     if len(input) == 0:
         sys.exit('No input files found.')
+    input = sorted(input)  # sort the input files so corpus will be reported in same order
     filepbar = tqdm.tqdm(input, leave=False, smoothing=0.02)
     error = False
+    total_size = 0
     for filepath in filepbar:
         _, filename = os.path.split(os.path.splitext(filepath)[0])
         ext = '.lua' if args.lua else '.tic'
@@ -188,7 +190,10 @@ def main():
             else:
                 ast = optimize.anneal(ast, steps=args.steps, cost_func=_cost_func,
                                       start_temp=args.start_temp, end_temp=args.end_temp)
-        filepbar.write(f"{filepath_sliced:<30} Original: {original_size} bytes. Packed: {final_size} bytes.")
+        total_size += final_size
+        filepbar.write(f"{filepath} - Original: {original_size} bytes - Packed: {final_size} bytes")
+    if len(input) > 1:
+        print("-" * 40 + f"\nTotal packed size: {total_size} bytes")
     sys.exit(1 if error else 0)
 
 

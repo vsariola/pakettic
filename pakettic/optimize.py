@@ -153,7 +153,7 @@ def anneal(state: Any, cost_func: Callable[[Any, int], int], steps: int, start_t
     best_cost = current_cost
     best = state
     r = random.Random(0)  # deterministic seed, to have deterministic results
-    bar = tqdm.tqdm(range(steps), position=1)
+    bar = tqdm.tqdm(range(steps), position=1, leave=False)
     for i in bar:
         alpha = i / (steps - 1)
         temp = math.exp((1 - alpha) * math.log(start_temp) + alpha * math.log(end_temp))
@@ -190,7 +190,7 @@ def lahc(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_leng
     history = [best_cost + init_margin] * list_length
     best = state
     r = random.Random(0)  # deterministic seed, to have deterministic results
-    bar = tqdm.tqdm(range(steps), position=1)
+    bar = tqdm.tqdm(range(steps), position=1, leave=False)
     for i in bar:
         candidate = mutate_func(state, r)
         cand_cost = cost_func(candidate, best_cost)
@@ -230,7 +230,7 @@ def dlas(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_leng
     N = list_length
     best = state
     r = random.Random(0)  # deterministic seed, to have deterministic results
-    bar = tqdm.tqdm(range(steps), position=1)
+    bar = tqdm.tqdm(range(steps), position=1, leave=False)
     for i in bar:
         prev_cost = current_cost
         candidate = mutate_func(state, r)
