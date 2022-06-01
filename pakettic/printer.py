@@ -238,7 +238,11 @@ class Formatter:
 
     @ __traverse.register
     def _(self, node: ast.Index):
+        if type(node.obj) is not ast.Name:
+            yield '('
         yield from self.__traverse(node.obj)
+        if type(node.obj) is not ast.Name:
+            yield ')'
         if type(node.item) is ast.LiteralString:
             yield '.'
             yield node.item.value
