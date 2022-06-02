@@ -120,6 +120,14 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
                 def _mutation():
                     node.step = ast.Numeral(1) if node.step is None else None
                 mutations.append(_mutation)
+        elif type(node) == ast.Hint:
+            def _mutation():
+                node.double_quotes = not node.double_quotes
+            mutations.append(_mutation)
+
+            def _mutation2():
+                node.no_hex = not node.no_hex
+            mutations.append(_mutation2)
 
     visit(new_root, _check_mutations)
     used_names = sorted(used_names.difference(_RESERVED))
@@ -373,6 +381,11 @@ def _(node: ast.UnaryOp, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
     return trans(ast.UnaryOp(op=node.op, operand=apply_trans(node.operand, trans)))
 
 
+@ apply_trans.register
+def _(node: ast.Hint, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
+    return trans(ast.Hint(block=apply_trans(node.block, trans), no_hex=node.no_hex, double_quotes=node.double_quotes))
+
+
 @singledispatch
 def visit(node: ast.Node, visitor: Callable[[ast.Node], None]):
     """
@@ -520,3 +533,9 @@ def _(node: ast.Perm, visitor: Callable[[ast.Node], None]):
     visitor(node)
     for s in node.stats:
         visit(s, visitor)
+
+
+@ visit.register
+def _(node: ast.Hint, visitor: Callable[[ast.Node], None]):
+    visitor(node)
+    visit(node.block, visitor)

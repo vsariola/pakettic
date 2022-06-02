@@ -180,6 +180,14 @@ class BinOp(Node):
         return _precedence[self.op]
 
 
+@dataclass
+class Hint(Node):
+    """A node containing hints for printing. Does not reflect actual code."""
+    block: Block
+    no_hex: bool = True
+    double_quotes: bool = False
+
+
 _precedence = \
     dict.fromkeys(['---'], 1) | \
     dict.fromkeys(['^'], 2) | \

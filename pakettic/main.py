@@ -1,4 +1,5 @@
 import argparse
+from pakettic import ast
 from glob import glob
 import os
 import sys
@@ -163,8 +164,9 @@ def main():
         code_chunks = [c for c in cart if c[1] == ticfile.ChunkID.CODE]
         for c in code_chunks:
             code = cart[c].decode("ascii")
-            ast = parser.parse_string(code)
-            ast = optimize.loads_to_funcs(ast)
+            root = parser.parse_string(code)
+            root = optimize.loads_to_funcs(root)
+            root = ast.Hint(root)
 
             def _cost_func(root, best_cost):
                 nonlocal final_size
@@ -184,14 +186,14 @@ def main():
                         filepbar.write(f"{ret} bytes:\n{'-'*40}\n{printer.format(root, pretty=True).strip()}\n{'-'*40}")
                 return ret
             if args.algorithm == 'lahc':
-                ast = optimize.lahc(ast, steps=args.steps, cost_func=_cost_func,
-                                    list_length=args.lahc_history, init_margin=args.margin, seed=args.seed)
+                root = optimize.lahc(root, steps=args.steps, cost_func=_cost_func,
+                                     list_length=args.lahc_history, init_margin=args.margin, seed=args.seed)
             elif args.algorithm == 'dlas':
-                ast = optimize.dlas(ast, steps=args.steps, cost_func=_cost_func,
-                                    list_length=args.dlas_history, init_margin=args.margin, seed=args.seed)
+                root = optimize.dlas(root, steps=args.steps, cost_func=_cost_func,
+                                     list_length=args.dlas_history, init_margin=args.margin, seed=args.seed)
             else:
-                ast = optimize.anneal(ast, steps=args.steps, cost_func=_cost_func,
-                                      start_temp=args.start_temp, end_temp=args.end_temp, seed=args.seed)
+                root = optimize.anneal(root, steps=args.steps, cost_func=_cost_func,
+                                       start_temp=args.start_temp, end_temp=args.end_temp, seed=args.seed)
         total_size += final_size
         filepbar.write(f"{filepath} - Original: {original_size} bytes - Packed: {final_size} bytes")
     if len(input) > 1:

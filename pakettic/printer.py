@@ -27,6 +27,7 @@ class Formatter:
     indent: int = 0
     double_quotes: bool = False
     pretty: bool = False
+    no_hex: bool = False
 
     def format(self, node: ast.Node) -> str:
         tokens = self.__traverse(node)
@@ -378,4 +379,17 @@ class Formatter:
 
     @ __traverse.register
     def _(self, node: ast.Numeral):
-        yield str(node)
+        if self.no_hex and node.hex and node.fractional == 0 and node.exponent == 0:
+            yield str(node.whole)
+        else:
+            yield str(node)
+
+    @ __traverse.register
+    def _(self, node: ast.Hint):
+        prev_double_quotes = self.double_quotes
+        prev_no_hex = self.no_hex
+        self.double_quotes = node.double_quotes
+        self.no_hex = node.no_hex
+        yield from self.__traverse(node.block)
+        self.double_quotes = prev_double_quotes
+        self.no_hex = prev_no_hex
