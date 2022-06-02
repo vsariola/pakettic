@@ -74,6 +74,7 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
     mutations = []
 
     used_names = set()
+    used_labels = set()
 
     def _check_mutations(node: ast.Node):
         if type(node) == ast.BinOp:
@@ -98,6 +99,10 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
                     mutations.append(_mutation)
         elif type(node) == ast.Name:
             used_names.add(node.id)
+        elif type(node) == ast.Label:
+            used_labels.add(node.name)
+        elif type(node) == ast.Goto:
+            used_labels.add(node.target)
         elif type(node) == ast.Alt:
             for i, _ in enumerate(node.alts[1:]):
                 def _mutation(i=i):
@@ -146,6 +151,24 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
     # but that's probably ok: swapping variables head to head is usually better idea
     # that swapping variables with new ones
     mutations.extend((var_repl(a, b) for a in used_names for b in _LOWERS if a != b))
+
+    def label_repl(name_a, name_b):
+        def _mut():
+            def _repl(node):
+                if type(node) == ast.Label:
+                    if node.name == name_a:
+                        node.name = name_b
+                    elif node.name == name_b:
+                        node.name = name_a
+                if type(node) == ast.Goto:
+                    if node.target == name_a:
+                        node.target = name_b
+                    elif node.target == name_b:
+                        node.target = name_a
+            visit(new_root, _repl)
+        return _mut
+    used_labels = sorted(used_labels)
+    mutations.extend((label_repl(a, b) for a in used_labels for b in _LOWERS if a != b))
     mutation = rand.choice(mutations)
     mutation()
     return new_root
