@@ -10,8 +10,8 @@ function TIC()
       --{
       rect(c, y / 2, 1, y, 0) -- draw mountains
       circ(x, z * 21 + c - 30, 17 + r * 9, -z) -- clouds
-      y = y + 6 * math.sin(r * 199) -- randomness to mountains
       --}
+      y = y + 6 * math.sin(r * 199) -- randomness to mountains
     end
     print("v", x, z * 8) -- draw birds
   end
