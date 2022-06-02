@@ -213,7 +213,7 @@ class Formatter:
 
     @ __traverse.register
     def _(self, node: ast.Func):
-        if len(node.args) == 0 and not self.pretty and node.oneline:
+        if (len(node.args) == 0 or (len(node.args) == 1 and type(node.args[0]) == ast.Ellipsis)) and not self.pretty and node.oneline:
             self.indent += 1
             fmt = Formatter(self.indent + 1, double_quotes=not self.double_quotes, pretty=False)
             s = fmt.format(node.body)

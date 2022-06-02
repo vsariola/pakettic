@@ -116,7 +116,7 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
                             node.stats[i], node.stats[j] = node.stats[j], node.stats[i]
                         mutations.append(_mutation)
         elif type(node) == ast.Func:
-            if len(node.args) == 0:
+            if len(node.args) == 0 or (len(node.args) == 1 and type(node.args[0]) == ast.Ellipsis):
                 def _mutation():
                     node.oneline = not node.oneline
                 mutations.append(_mutation)
