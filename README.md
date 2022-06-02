@@ -74,7 +74,11 @@ include:
   - shortening variable names
   - flipping binary operators `*`, `+`, `&`, `~`, `|`, `>`, `<`, `>=`,
     `<=`, `~=`, and `==`
-  - swapping right branches of `+-` ops and `*/` ops
+  - swapping right branches of `+-` ops and `*/` ops i.e. `a+b-c` can
+    become `a-c+b`
+  - using either single or double quotes for all strings
+  - converting whole hexadecimals into decimals
+  - convert `for a,b,1 do` into `for a,b do` and vice versa
   - reordering statements: statements that can be reordered are marked
     with [magic comments](#magic-comments)
   - alternative expressions: alternatives are marked with
