@@ -115,6 +115,11 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
                 def _mutation():
                     node.oneline = not node.oneline
                 mutations.append(_mutation)
+        elif type(node) == ast.ForRange:
+            if node.step is None or node.step == ast.Numeral(1):
+                def _mutation():
+                    node.step = ast.Numeral(1) if node.step is None else None
+                mutations.append(_mutation)
 
     visit(new_root, _check_mutations)
     used_names = sorted(used_names.difference(_RESERVED))
