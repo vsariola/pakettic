@@ -135,7 +135,7 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
     return new_root
 
 
-def anneal(state: Any, cost_func: Callable[[Any, int], int], steps: int, start_temp: float, end_temp: float, mutate_func: Callable[[Any], Any] = mutate) -> Any:
+def anneal(state: Any, cost_func: Callable[[Any, int], int], steps: int, start_temp: float, end_temp: float, seed: int, mutate_func: Callable[[Any], Any] = mutate) -> Any:
     """
     Perform simulated annealing optimization, using exponential temperature schedule.
     See https://en.wikipedia.org/wiki/Simulated_annealing
@@ -152,7 +152,7 @@ def anneal(state: Any, cost_func: Callable[[Any, int], int], steps: int, start_t
     current_cost = cost_func(state, inf)
     best_cost = current_cost
     best = state
-    r = random.Random(0)  # deterministic seed, to have deterministic results
+    r = random.Random(seed)  # deterministic seed, to have deterministic results
     bar = tqdm.tqdm(range(steps), position=1, leave=False)
     for i in bar:
         alpha = i / (steps - 1)
@@ -171,7 +171,7 @@ def anneal(state: Any, cost_func: Callable[[Any, int], int], steps: int, start_t
     return best
 
 
-def lahc(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_length: int, init_margin: int, mutate_func: Callable[[Any], Any] = mutate) -> Any:
+def lahc(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_length: int, init_margin: int, seed: int, mutate_func: Callable[[Any], Any] = mutate) -> Any:
     """
     Optimize a function using Late Acceptance Hill Climbing
     See https://arxiv.org/pdf/1806.09328.pdf
@@ -189,7 +189,7 @@ def lahc(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_leng
     best_cost = current_cost
     history = [best_cost + init_margin] * list_length
     best = state
-    r = random.Random(0)  # deterministic seed, to have deterministic results
+    r = random.Random(seed)  # deterministic seed, to have deterministic results
     bar = tqdm.tqdm(range(steps), position=1, leave=False)
     for i in bar:
         candidate = mutate_func(state, r)
@@ -209,7 +209,7 @@ def lahc(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_leng
     return best
 
 
-def dlas(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_length: int, init_margin: int, mutate_func: Callable[[Any], Any] = mutate) -> Any:
+def dlas(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_length: int, init_margin: int, seed: int, mutate_func: Callable[[Any], Any] = mutate) -> Any:
     """
     Optimize a function using Diversified Late Acceptance Search
     See https://arxiv.org/pdf/1806.09328.pdf
@@ -229,7 +229,7 @@ def dlas(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_leng
     history = [cost_max] * list_length
     N = list_length
     best = state
-    r = random.Random(0)  # deterministic seed, to have deterministic results
+    r = random.Random(seed)  # deterministic seed, to have deterministic results
     bar = tqdm.tqdm(range(steps), position=1, leave=False)
     for i in bar:
         prev_cost = current_cost

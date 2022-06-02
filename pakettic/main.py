@@ -103,6 +103,8 @@ def main():
                           help='stop compression when target size is reached. default: %(default)d')
     optgroup.add_argument('--exact', action='store_const', const=True,
                           help='used with --target-size to indicate that the size should be reached exactly')
+    optgroup.add_argument('--seed', type=int, default=0, metavar='int',
+                          help='random seed. default: %(default)d')
     zopfligroup = argparser.add_argument_group('optional arguments for tuning zopfli')
     zopfligroup.add_argument('-z', '--zopfli-level', type=_parse_zopfli_level, default=_ZOPFLI_LEVELS[2], metavar='int',
                              help='generic compression level for zopfli, 0-5. default: 2')
@@ -183,13 +185,13 @@ def main():
                 return ret
             if args.algorithm == 'lahc':
                 ast = optimize.lahc(ast, steps=args.steps, cost_func=_cost_func,
-                                    list_length=args.lahc_history, init_margin=args.margin)
+                                    list_length=args.lahc_history, init_margin=args.margin, seed=args.seed)
             elif args.algorithm == 'dlas':
                 ast = optimize.dlas(ast, steps=args.steps, cost_func=_cost_func,
-                                    list_length=args.dlas_history, init_margin=args.margin)
+                                    list_length=args.dlas_history, init_margin=args.margin, seed=args.seed)
             else:
                 ast = optimize.anneal(ast, steps=args.steps, cost_func=_cost_func,
-                                      start_temp=args.start_temp, end_temp=args.end_temp)
+                                      start_temp=args.start_temp, end_temp=args.end_temp, seed=args.seed)
         total_size += final_size
         filepbar.write(f"{filepath} - Original: {original_size} bytes - Packed: {final_size} bytes")
     if len(input) > 1:
