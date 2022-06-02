@@ -129,7 +129,10 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
                         node.id = id_a
             visit(new_root, _repl)
         return _mut
-    mutations.extend((var_repl(a, b) for a in used_names for b in _LOWERS))
+    # if both a and b are in used_names, we have both copies of a,b and b,a in the list
+    # but that's probably ok: swapping variables head to head is usually better idea
+    # that swapping variables with new ones
+    mutations.extend((var_repl(a, b) for a in used_names for b in _LOWERS if a != b))
     mutation = rand.choice(mutations)
     mutation()
     return new_root
