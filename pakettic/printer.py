@@ -239,10 +239,12 @@ class Formatter:
 
     @ __traverse.register
     def _(self, node: ast.Index):
-        if type(node.obj) is not ast.Name:
+        require_parentheses = type(node.obj) is not ast.Name and \
+            type(node.obj) is not ast.Index and type(node.obj) is not ast.MethodCall
+        if require_parentheses:
             yield '('
         yield from self.__traverse(node.obj)
-        if type(node.obj) is not ast.Name:
+        if require_parentheses:
             yield ')'
         if type(node.item) is ast.LiteralString:
             yield '.'
