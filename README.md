@@ -56,6 +56,8 @@ For a full list of command line options, see:
 $ pakettic --help
 ```
 
+See also [tips for command line arguments](#tips-for-command-line-arguments)
+
 Running all tests:
 
 ```bash
@@ -124,6 +126,31 @@ naturally show up as a comment in LUA so you will have to continue the
 expression on next line if this is in the middle of an expression. `--|`
 has the lowest precedence, even lower than `^` so put parentheses if you
 want to try more complicated expressions e.g. `(x//256)--|(x>>8)`
+
+## Tips for command line arguments
+
+- Cranking up the Zopfli settings can usually save a few more bytes,
+  with the expense of slowing down the optimization considerably. Try
+  `-z3` to set the Zopfli-level. By default, the Zopfli-level is 2, and
+  it goes up to 5.
+- The algorithm uses a pseudorandom generator. Sometimes using a
+  different seed finds a few byte better or worse solution. Use command
+  line argument `--seed` to try different seeds.
+- Similarly, different optimization heuristics produce slightly
+  different results. Try different heuristics e.g. with `-alahc`,
+  `-adlas` or `-aanneal`.
+- To avoid re-optimizing all the expressions every time, do a long
+  optimization run, study the results and change your expressions to the
+  forms that pack well. Use command-line argument `-p` to always print a
+  reasonable readable version of the best solution when one is found.
+- By default, pakettic only includes CODE and DEFAULT chunks. DEFAULT
+  incicates that before loading the cart, TIC-80 loads the default cart,
+  setting default palette, waveforms etc. If you don't need the default
+  values (e.g. you set the palette yourself), save one byte by only
+  including CODE chunk in the cart: `-ccode`
+- Working on a tweet-cart? Use `-l` to output LUA carts, which are
+  uncompressed. The optimization algorithm then just optimizes the
+  uncompressed size of the code.
 
 ## Known issues
 
