@@ -183,7 +183,7 @@ def main():
                     outcart[key] = bytes
                     final_size = ticfile.write(outcart, outfile, pedantic=args.pedantic)
                     if args.print_best:
-                        filepbar.write(f"{ret} bytes:\n{'-'*40}\n{printer.format(root, pretty=True).strip()}\n{'-'*40}")
+                        filepbar.write(f"-- {ret} bytes:\n{'-'*40}\n{printer.format(root, pretty=True).strip()}\n{'-'*40}")
                 return ret
             if args.algorithm == 'lahc':
                 root = optimize.lahc(root, steps=args.steps, cost_func=_cost_func,
