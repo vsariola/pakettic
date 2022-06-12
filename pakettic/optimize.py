@@ -60,6 +60,19 @@ def funcs_to_loads(root: ast.Node):
     return apply_trans(root, _trans)
 
 
+def _balance(node: ast.Node):
+    if type(node) != ast.BinOp or type(node.right) != ast.BinOp:
+        return
+    if (node.op in _PLUSMINUS_OPS and node.right.op in _PLUSMINUS_OPS) or (node.op in _MULDIV_OPS and node.right.op in _MULDIV_OPS):
+        second_op = node.right.op
+        if node.op == "-":
+            second_op = "-" if second_op == "+" else "-"
+        if node.op == "/":
+            second_op = "/" if second_op == "*" else "/"
+        node.left, node.right = ast.BinOp(node.left, node.op, node.right.left), node.right.right
+        node.op = second_op
+
+
 def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
     """
     Mutates an abstract syntax tree by making small modification to it,
@@ -84,6 +97,7 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
                 def _mutation():
                     node.left, node.right = node.right, node.left
                     node.op = _FLIPPED_OPS[i]
+                    _balance(node)
                 mutations.append(_mutation)
             except:
                 pass
@@ -92,6 +106,7 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
                     def _mutation():
                         node.left.right, node.right = node.right, node.left.right
                         node.op, node.left.op = node.left.op, node.op
+                        _balance(node)
                     mutations.append(_mutation)
                 if node.op in _AND_OR_XOR_OPS and node.left.op == node.op:
                     def _mutation():
