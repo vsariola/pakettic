@@ -1,7 +1,5 @@
 from dataclasses import dataclass
-from typing import Union, Optional
-
-Expression = Union['Nil', 'Boolean']
+from typing import Optional
 
 
 class Node:
@@ -20,7 +18,7 @@ class Name(Node):
 @dataclass
 class Block(Node):
     """Represents list of statements in the abstract syntax tree"""
-    stats: list
+    stats: list[Node]
 
 
 @dataclass
@@ -32,8 +30,8 @@ class Do(Node):
 @dataclass
 class Assign(Node):
     """Represents an assignment in the abstract syntax tree"""
-    targets: list[Name]
-    values: list
+    targets: list[Node]
+    values: list[Node]
 
 
 @dataclass
@@ -81,24 +79,24 @@ class Nil(Node):
 @dataclass
 class While(Node):
     """Represents a while loop in the abstract syntax tree"""
-    condition: Expression
+    condition: Node
     block: Block
 
 
 @dataclass
 class Repeat(Node):
     """Represents a repeat-until loop in the abstract syntax tree"""
-    condition: Expression
+    condition: Node
     block: Block
 
 
 @dataclass
 class ForRange(Node):
     """Represents a ranged for loop in the abstract syntax tree"""
-    var: str
-    lb: Expression
-    ub: Expression
-    step: Optional[Expression]  # can be empty
+    var: Node
+    lb: Node
+    ub: Node
+    step: Optional[Node]  # can be empty
     body: Block
 
 
@@ -106,7 +104,7 @@ class ForRange(Node):
 class ForIn(Node):
     """Represents a for-in loop in the abstract syntax tree"""
     names: list[Name]
-    exps: list
+    exps: list[Node]
     body: Block
 
 
@@ -114,56 +112,56 @@ class ForIn(Node):
 class Local(Node):
     """Represents a local assignment in the abstract syntax tree"""
     targets: list[Name]
-    values: list
+    values: list[Node]
 
 
 @dataclass
 class Func(Node):
     """Represents a function definition the abstract syntax tree"""
-    args: list
+    args: list[Name]
     body: Block
-    oneline: Boolean = True
+    oneline: bool = True
 
 
 @dataclass
 class Index(Node):
     """Represents an indexing (obj[item]) the abstract syntax tree"""
-    obj: Expression
-    item: Expression
+    obj: Node
+    item: Node
 
 
 @dataclass
 class Table(Node):
     """Represents a table definition the abstract syntax tree"""
-    fields: list[Expression]
+    fields: list[Node]
 
 
 @dataclass
 class Field(Node):
     """Represents a field in the inside a table definition"""
-    value: Expression
-    key: Expression = None
+    value: Node
+    key: Node = None
 
 
 @dataclass
 class Call(Node):
     """Represents a call in the abstract syntax tree"""
-    func: Expression
-    args: list[Expression]
+    func: Node
+    args: list[Node]
 
 
 @dataclass
 class MethodCall(Node):
     """Represents a method call ('obj:method(args)') in the abstract syntax tree"""
-    value: Expression
+    value: Node
     method: str
-    args: list[Expression]
+    args: list[Node]
 
 
 @dataclass
 class If(Node):
     """Represents an if statement in the abstract syntax tree"""
-    test: Expression
+    test: Node
     body: Block
     orelse: Block
 
@@ -171,9 +169,9 @@ class If(Node):
 @dataclass
 class BinOp(Node):
     """Represents a binary operator in the abstract syntax tree"""
-    left: Expression
+    left: Node
     op: str
-    right: Expression
+    right: Node
 
     @property
     def precedence(self):
@@ -207,7 +205,7 @@ _precedence = \
 class UnaryOp(Node):
     """Represents an unary operator in the abstract syntax tree"""
     op: str
-    operand: Expression
+    operand: Node
 
     @property
     def precedence(self):
@@ -244,7 +242,7 @@ class Alt(Node):
     Not part of standard LUA, but created using pakettic magic comments.
     Only the first alternative is the one currently active.
     """
-    alts: list
+    alts: list[Node]
 
     @property
     def precedence(self):
@@ -257,5 +255,5 @@ class Perm(Node):
     Represents a list of statements that can be freely reordered in the abstract syntax tree.
     Not part of standard LUA, but created using pakettic magic comments.
     """
-    stats: list
-    allow_reorder: Boolean = True
+    stats: list[Node]
+    allow_reorder: bool = True
