@@ -316,7 +316,7 @@ def apply_trans(node: ast.Node, trans: Callable[[ast.Node], ast.Node]) -> ast.No
         elif origin is Optional:
             if attr is not None:
                 replaces[name] = apply_trans(attr, trans)
-        elif issubclass(typehint, ast.Node):
+        elif inspect.isclass(typehint) and issubclass(typehint, ast.Node):
             replaces[name] = apply_trans(attr, trans)
     return trans(replace(node, **replaces))
 
