@@ -44,23 +44,6 @@ def loads_to_funcs(root: ast.Node) -> ast.Node:
     return apply_trans(root, _trans)
 
 
-def funcs_to_loads(root: ast.Node):
-    """
-    Transforms an abstract syntax tree by converting all function()...end into load'...'
-        Parameters:
-            root (ast.Node): Root of the abstract syntax tree
-        Returns:
-            new_root (ast.Node): Root of the new, transformed abstract syntax tree
-    """
-    def _trans(node: ast.Node) -> ast.Node:
-        if isinstance(node, ast.Func) and len(node.args) == 0:
-            code = printer.Formatter(double_quotes=True).format(node.body)
-            return ast.Call(func=ast.Name("load"), args=[ast.LiteralString(code)])
-        else:
-            return node
-    return apply_trans(root, _trans)
-
-
 def _balance(node: ast.Node):
     if type(node) != ast.BinOp or type(node.right) != ast.BinOp:
         return
