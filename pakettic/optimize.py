@@ -6,6 +6,7 @@ import random
 from typing import Any, Callable, Union
 import tqdm
 from pakettic import ast, parser, printer
+from dataclasses import replace
 
 _FLIPPABLE_OPS = ["*", "+", "&", "~", "|", ">", "<", ">=", "<=", "~=", "=="]
 _FLIPPED_OPS = ["*", "+", "&", "~", "|", "<", ">", "<=", ">=", "~=", "=="]
@@ -326,102 +327,102 @@ def apply_trans(root: ast.Node, trans: Callable[[ast.Node], ast.Node]) -> ast.No
 
 @ apply_trans.register
 def _(node: ast.Block, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.Block([apply_trans(s, trans) for s in node.stats]))
+    return trans(replace(node,stats=([apply_trans(s, trans) for s in node.stats])))
 
 
 @ apply_trans.register
 def _(node: ast.Do, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.Do(apply_trans(node.block, trans)))
+    return trans(replace(node,block=apply_trans(node.block, trans)))
 
 
 @ apply_trans.register
 def _(node: ast.Assign, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.Assign(targets=[apply_trans(t, trans) for t in node.targets], values=[apply_trans(v, trans) for v in node.values]))
+    return trans(replace(node,targets=[apply_trans(t, trans) for t in node.targets], values=[apply_trans(v, trans) for v in node.values]))
 
 
 @ apply_trans.register
 def _(node: ast.While, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.While(apply_trans(node.condition, trans), apply_trans(node.block, trans)))
+    return trans(replace(node,condition=apply_trans(node.condition, trans), block=apply_trans(node.block, trans)))
 
 
 @ apply_trans.register
 def _(node: ast.Repeat, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.Repeat(apply_trans(node.condition, trans), apply_trans(node.block, trans)))
+    return trans(replace(node,condition=apply_trans(node.condition, trans), block=apply_trans(node.block, trans)))
 
 
 @ apply_trans.register
 def _(node: ast.ForRange, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.ForRange(apply_trans(node.var, trans), apply_trans(node.lb, trans), apply_trans(node.ub, trans), apply_trans(node.step, trans), apply_trans(node.body, trans)))
+    return trans(replace(node,var=apply_trans(node.var, trans), lb=apply_trans(node.lb, trans), ub=apply_trans(node.ub, trans), step=apply_trans(node.step, trans), body=apply_trans(node.body, trans)))
 
 
 @ apply_trans.register
 def _(node: ast.ForIn, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.ForIn([apply_trans(n, trans) for n in node.names], [apply_trans(i, trans) for i in node.exps], body=apply_trans(node.body, trans)))
+    return trans(replace(node,names=[apply_trans(n, trans) for n in node.names], exps=[apply_trans(i, trans) for i in node.exps], body=apply_trans(node.body, trans)))
 
 
 @ apply_trans.register
 def _(node: ast.Local, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.Local([apply_trans(t, trans) for t in node.targets], value=[apply_trans(v, trans) for v in node.values]))
+    return trans(replace(node,targets=[apply_trans(t, trans) for t in node.targets], values=[apply_trans(v, trans) for v in node.values]))
 
 
 @ apply_trans.register
 def _(node: ast.Func, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.Func(args=[apply_trans(a, trans) for a in node.args], body=apply_trans(node.body, trans), oneline=node.oneline))
+    return trans(replace(node,args=[apply_trans(a, trans) for a in node.args], body=apply_trans(node.body, trans)))
 
 
 @ apply_trans.register
 def _(node: ast.Index, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.Index(apply_trans(node.obj, trans), apply_trans(node.item, trans)))
+    return trans(replace(node, obj=apply_trans(node.obj, trans), item=apply_trans(node.item, trans)))
 
 
 @ apply_trans.register
 def _(node: ast.Table, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.Table([apply_trans(f, trans) for f in node.fields]))
+    return trans(replace(node, fields=[apply_trans(f, trans) for f in node.fields]))
 
 
 @ apply_trans.register
 def _(node: ast.Field, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.Field(value=apply_trans(node.value, trans), key=apply_trans(node.key, trans)))
+    return trans(replace(node, value=apply_trans(node.value, trans), key=apply_trans(node.key, trans)))
 
 
 @ apply_trans.register
 def _(node: ast.Call, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.Call(func=apply_trans(node.func, trans), args=[apply_trans(a, trans) for a in node.args]))
+    return trans(replace(node, func=apply_trans(node.func, trans), args=[apply_trans(a, trans) for a in node.args]))
 
 
 @ apply_trans.register
 def _(node: ast.MethodCall, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.MethodCall(value=apply_trans(node.value, trans), method=node.method, args=[apply_trans(a, trans) for a in node.args]))
+    return trans(replace(node, value=apply_trans(node.value, trans), args=[apply_trans(a, trans) for a in node.args]))
 
 
 @ apply_trans.register
 def _(node: ast.If, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.If(test=apply_trans(node.test, trans), body=apply_trans(node.body, trans), orelse=apply_trans(node.orelse, trans)))
+    return trans(replace(node, test=apply_trans(node.test, trans), body=apply_trans(node.body, trans), orelse=apply_trans(node.orelse, trans)))
 
 
 @ apply_trans.register
 def _(node: ast.BinOp, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.BinOp(left=apply_trans(node.left, trans), op=node.op, right=apply_trans(node.right, trans)))
+    return trans(replace(node, left=apply_trans(node.left, trans), right=apply_trans(node.right, trans)))
 
 
 @ apply_trans.register
 def _(node: ast.Alt, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.Alt([apply_trans(a, trans) for a in node.alts]))
+    return trans(replace(node, alts=[apply_trans(a, trans) for a in node.alts]))
 
 
 @ apply_trans.register
 def _(node: ast.Perm, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.Perm([apply_trans(s, trans) for s in node.stats], allow_reorder=node.allow_reorder))
+    return trans(replace(node, stats=[apply_trans(s, trans) for s in node.stats]))
 
 
 @ apply_trans.register
 def _(node: ast.UnaryOp, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.UnaryOp(op=node.op, operand=apply_trans(node.operand, trans)))
+    return trans(replace(node, operand=apply_trans(node.operand, trans)))
 
 
 @ apply_trans.register
 def _(node: ast.Hint, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(ast.Hint(block=apply_trans(node.block, trans), no_hex=node.no_hex, double_quotes=node.double_quotes))
+    return trans(replace(node, block=apply_trans(node.block, trans)))
 
 
 @singledispatch
