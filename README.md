@@ -113,6 +113,21 @@ For example:
 will try both `a="hello"b="world"` and `b="world"a="hello"` to see if
 compresses better.
 
+Notice that only complete statements can be reordered. Thus, this will
+NOT work:
+
+```lua
+ --{
+ for x=0,239 do
+  for y=0,135 do
+ --}
+  end
+ end
+```
+
+A good rule of thumb is that you should be able to replace `--{` and
+`--}` with `do` and `end`, respectively, and still have valid code.
+
 Statements between `--{!` and `--}` are not ordered, so you can make
 blocks of statements that are kept in order within a pair of `--{` and
 `--}` tags.
