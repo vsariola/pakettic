@@ -27,6 +27,7 @@ _RESERVED = {'_G', 'TIC', 'SCN', 'BDR', 'OVR', '_VERSION', 'assert', 'btn', 'btn
              'select', 'setmetatable', 'sfx', 'spr', 'str', 'string', 'sync',
              'table', 'textri', 'time', 'tonumber', 'tostring', 'trace', 'tri',
              'trib', 'tstamp', 'ttri', 'type', 'vbank', 'xpcall'}
+_TWO = ast.Numeral(2)
 
 
 def loads_to_funcs(root: ast.Node) -> ast.Node:
@@ -88,6 +89,16 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
                     mutations.append(_mutation)
             except:
                 pass
+            if node.op == "*" and node.left == node.right:
+                def _mutation():
+                    node.op = "^"
+                    node.right = _TWO
+                mutations.append(_mutation)
+            if node.op == "^" and node.right == _TWO:
+                def _mutation():
+                    node.op = "*"
+                    node.right = copy.deepcopy(node.left)
+                mutations.append(_mutation)
         elif type(node) == ast.Name:
             used_names.add(node.id)
         elif type(node) == ast.Label:
