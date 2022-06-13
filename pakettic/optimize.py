@@ -3,7 +3,7 @@ import copy
 from functools import singledispatch
 import math
 import random
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union, get_args, get_origin, get_type_hints
 import tqdm
 from pakettic import ast, parser, printer
 from dataclasses import replace
@@ -312,117 +312,30 @@ def dlas(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_leng
     return best
 
 
-@singledispatch
-def apply_trans(root: ast.Node, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
+def apply_trans(node: ast.Node, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
     """
     Applies a transformation to an abstract syntax tree recursively
         Parameters:
-            root (ast.Node): Root of the syntax tree to transform
+            node (ast.Node): Root of the syntax tree to transform
             trans (Callable[[ast.Node], ast.Node]): Callback function that takes a node and returns a transformed node
         Returns:
-            new_root (ast.Node): Root of the new, transformed abstract syntax tree
+            new_node (ast.Node): Root of the new, transformed abstract syntax tree
     """
-    return trans(root)
-
-
-@ apply_trans.register
-def _(node: ast.Block, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(replace(node,stats=([apply_trans(s, trans) for s in node.stats])))
-
-
-@ apply_trans.register
-def _(node: ast.Do, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(replace(node,block=apply_trans(node.block, trans)))
-
-
-@ apply_trans.register
-def _(node: ast.Assign, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(replace(node,targets=[apply_trans(t, trans) for t in node.targets], values=[apply_trans(v, trans) for v in node.values]))
-
-
-@ apply_trans.register
-def _(node: ast.While, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(replace(node,condition=apply_trans(node.condition, trans), block=apply_trans(node.block, trans)))
-
-
-@ apply_trans.register
-def _(node: ast.Repeat, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(replace(node,condition=apply_trans(node.condition, trans), block=apply_trans(node.block, trans)))
-
-
-@ apply_trans.register
-def _(node: ast.ForRange, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(replace(node,var=apply_trans(node.var, trans), lb=apply_trans(node.lb, trans), ub=apply_trans(node.ub, trans), step=apply_trans(node.step, trans), body=apply_trans(node.body, trans)))
-
-
-@ apply_trans.register
-def _(node: ast.ForIn, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(replace(node,names=[apply_trans(n, trans) for n in node.names], exps=[apply_trans(i, trans) for i in node.exps], body=apply_trans(node.body, trans)))
-
-
-@ apply_trans.register
-def _(node: ast.Local, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(replace(node,targets=[apply_trans(t, trans) for t in node.targets], values=[apply_trans(v, trans) for v in node.values]))
-
-
-@ apply_trans.register
-def _(node: ast.Func, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(replace(node,args=[apply_trans(a, trans) for a in node.args], body=apply_trans(node.body, trans)))
-
-
-@ apply_trans.register
-def _(node: ast.Index, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(replace(node, obj=apply_trans(node.obj, trans), item=apply_trans(node.item, trans)))
-
-
-@ apply_trans.register
-def _(node: ast.Table, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(replace(node, fields=[apply_trans(f, trans) for f in node.fields]))
-
-
-@ apply_trans.register
-def _(node: ast.Field, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(replace(node, value=apply_trans(node.value, trans), key=apply_trans(node.key, trans)))
-
-
-@ apply_trans.register
-def _(node: ast.Call, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(replace(node, func=apply_trans(node.func, trans), args=[apply_trans(a, trans) for a in node.args]))
-
-
-@ apply_trans.register
-def _(node: ast.MethodCall, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(replace(node, value=apply_trans(node.value, trans), args=[apply_trans(a, trans) for a in node.args]))
-
-
-@ apply_trans.register
-def _(node: ast.If, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(replace(node, test=apply_trans(node.test, trans), body=apply_trans(node.body, trans), orelse=apply_trans(node.orelse, trans)))
-
-
-@ apply_trans.register
-def _(node: ast.BinOp, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(replace(node, left=apply_trans(node.left, trans), right=apply_trans(node.right, trans)))
-
-
-@ apply_trans.register
-def _(node: ast.Alt, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(replace(node, alts=[apply_trans(a, trans) for a in node.alts]))
-
-
-@ apply_trans.register
-def _(node: ast.Perm, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(replace(node, stats=[apply_trans(s, trans) for s in node.stats]))
-
-
-@ apply_trans.register
-def _(node: ast.UnaryOp, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(replace(node, operand=apply_trans(node.operand, trans)))
-
-
-@ apply_trans.register
-def _(node: ast.Hint, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
-    return trans(replace(node, block=apply_trans(node.block, trans)))
+    if node is None:
+        return trans(node)
+    replaces = dict()
+    for name, typehint in get_type_hints(node).items():
+        attr = getattr(node, name)
+        origin = get_origin(typehint)
+        args = get_args(typehint)
+        if origin is list and len(args) > 0 and issubclass(args[0], ast.Node):
+            replaces[name] = [apply_trans(e, trans) for e in attr]
+        elif origin is Optional:
+            if attr is not None:
+                replaces[name] = apply_trans(attr, trans)
+        elif issubclass(typehint, ast.Node):
+            replaces[name] = apply_trans(attr, trans)
+    return trans(replace(node, **replaces))
 
 
 @singledispatch
