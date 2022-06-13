@@ -74,10 +74,9 @@ its variant diversified late acceptance search) to randomly mutate the
 syntax tree & see if it compresses better. Implemented mutations
 include:
   - shortening variable names
-  - flipping binary operators `*`, `+`, `&`, `~`, `|`, `>`, `<`, `>=`,
-    `<=`, `~=`, and `==`
-  - swapping right branches of `+-` ops and `*/` ops i.e. `a+b-c` can
-    become `a-c+b`
+  - flipping comparisons `>`, `<`, `>=`, `<=`, `~=`, and `==`
+  - reordering arithmetic operators `+`, `-`, `*` and `/` and bit logic
+    operators `&`, `~` and `|`
   - using either single or double quotes for all strings
   - converting whole hexadecimals into decimals
   - convert `for a,b,1 do` into `for a,b do` and vice versa
@@ -156,10 +155,11 @@ want to try more complicated expressions e.g. `(x//256)--|(x>>8)`
   `-adlas` or `-aanneal`.
 - To avoid re-optimizing all the expressions every time, do a long
   optimization run, study the results and change your expressions to the
-  forms that pack well. Use command-line argument `-p` to always print a
-  reasonable readable version of the best solution when one is found.
+  forms that pack well. Set the number of steps with `-s`. Use
+  command-line argument `-p` to always print a reasonably readable
+  version of the best solution when one is found.
 - By default, pakettic only includes CODE and DEFAULT chunks. DEFAULT
-  incicates that before loading the cart, TIC-80 loads the default cart,
+  indicates that before loading the cart, TIC-80 loads the default cart,
   setting default palette, waveforms etc. If you don't need the default
   values (e.g. you set the palette yourself), save one byte by only
   including CODE chunk in the cart: `-ccode`
