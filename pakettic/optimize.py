@@ -307,17 +307,20 @@ def apply_trans(node: ast.Node, trans: Callable[[ast.Node], ast.Node]) -> ast.No
     if node is None:
         return trans(node)
     replaces = dict()
-    for name, typehint in get_type_hints(node).items():
-        attr = getattr(node, name)
-        origin = get_origin(typehint)
-        args = get_args(typehint)
-        if origin is list and len(args) > 0 and issubclass(args[0], ast.Node):
-            replaces[name] = [apply_trans(e, trans) for e in attr]
-        elif origin is Optional:
-            if attr is not None:
+    try:
+        for name, typehint in get_type_hints(node).items():
+            attr = getattr(node, name)
+            origin = get_origin(typehint)
+            args = get_args(typehint)
+            if origin is list and len(args) > 0 and issubclass(args[0], ast.Node):
+                replaces[name] = [apply_trans(e, trans) for e in attr]
+            elif origin is Optional:
+                if attr is not None:
+                    replaces[name] = apply_trans(attr, trans)
+            elif inspect.isclass(typehint) and issubclass(typehint, ast.Node):
                 replaces[name] = apply_trans(attr, trans)
-        elif inspect.isclass(typehint) and issubclass(typehint, ast.Node):
-            replaces[name] = apply_trans(attr, trans)
+    except TypeError:
+        pass
     return trans(replace(node, **replaces))
 
 
