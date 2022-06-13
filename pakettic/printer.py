@@ -1,7 +1,7 @@
 
 
 from dataclasses import dataclass
-from functools import singledispatch, singledispatchmethod
+from functools import singledispatchmethod
 import typing
 import re
 from pakettic import ast

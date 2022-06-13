@@ -3,7 +3,7 @@ from lib2to3.pgen2.token import SLASH
 import os
 import struct
 import pyparsing as pp
-from typing import IO, ByteString
+from typing import ByteString
 from enum import IntEnum
 import typing
 

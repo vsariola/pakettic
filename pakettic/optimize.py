@@ -6,7 +6,7 @@ import math
 import random
 from typing import Any, Callable, Optional, Union, get_args, get_origin, get_type_hints
 import tqdm
-from pakettic import ast, parser, printer
+from pakettic import ast, parser
 from dataclasses import replace
 
 _FLIPPABLE_OPS = [">", "<", ">=", "<=", "~=", "=="]

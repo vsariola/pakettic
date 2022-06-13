@@ -1,4 +1,3 @@
-from sys import prefix
 from xml.dom.expatbuilder import DOCUMENT_NODE
 from pakettic import ast
 import pyparsing as pp
