@@ -77,6 +77,7 @@ include:
   - flipping comparisons `>`, `<`, `>=`, `<=`, `~=`, and `==`
   - reordering arithmetic operators `+`, `-`, `*` and `/` and bit logic
     operators `&`, `~` and `|`
+  - converting `a^2` into `a*a` and vice versa
   - using either single or double quotes for all strings
   - converting whole hexadecimals into decimals
   - convert `for a,b,1 do` into `for a,b do` and vice versa
