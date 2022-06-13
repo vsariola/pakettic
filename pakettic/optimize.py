@@ -1,6 +1,7 @@
 from cmath import inf
 import copy
 from functools import singledispatch
+import inspect
 import math
 import random
 from typing import Any, Callable, Optional, Union, get_args, get_origin, get_type_hints
@@ -8,11 +9,12 @@ import tqdm
 from pakettic import ast, parser, printer
 from dataclasses import replace
 
-_FLIPPABLE_OPS = ["*", "+", "&", "~", "|", ">", "<", ">=", "<=", "~=", "=="]
-_FLIPPED_OPS = ["*", "+", "&", "~", "|", "<", ">", "<=", ">=", "~=", "=="]
-_PLUSMINUS_OPS = ["+", "-"]
-_MULDIV_OPS = ["*", "/"]
-_AND_OR_XOR_OPS = ["&", "|", "~"]
+_FLIPPABLE_OPS = [">", "<", ">=", "<=", "~=", "=="]
+_FLIPPED_OPS = ["<", ">", "<=", ">=", "~=", "=="]
+_REORDERABLE_OPS = ["+", "-", "*", "/", "&", "|", "~"]
+_REORDERABLE_RIGHT = [["+", "-"], ["+", "-"], ["*", "/"], ["*", "/"], ["&"], ["|"], ["~"]]
+_REORDERABLE_LEFT = [True, False, True, False, True, True, True]
+
 _LOWERS = list(chr(i) for i in range(ord('a'), ord('z') + 1))
 _RESERVED = {'_G', 'TIC', 'SCN', 'BDR', 'OVR', '_VERSION', 'assert', 'btn', 'btnp',
              'circ', 'circb', 'clip', 'cls', 'collectgarbage', 'coroutine', 'debug',
@@ -44,19 +46,6 @@ def loads_to_funcs(root: ast.Node) -> ast.Node:
     return apply_trans(root, _trans)
 
 
-def _balance(node: ast.Node):
-    if type(node) != ast.BinOp or type(node.right) != ast.BinOp:
-        return
-    if (node.op in _PLUSMINUS_OPS and node.right.op in _PLUSMINUS_OPS) or (node.op in _MULDIV_OPS and node.right.op in _MULDIV_OPS):
-        second_op = node.right.op
-        if node.op == "-":
-            second_op = "-" if second_op == "+" else "-"
-        if node.op == "/":
-            second_op = "/" if second_op == "*" else "/"
-        node.left, node.right = ast.BinOp(node.left, node.op, node.right.left), node.right.right
-        node.op = second_op
-
-
 def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
     """
     Mutates an abstract syntax tree by making small modification to it,
@@ -81,21 +70,24 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
                 def _mutation():
                     node.left, node.right = node.right, node.left
                     node.op = _FLIPPED_OPS[i]
-                    _balance(node)
                 mutations.append(_mutation)
             except:
                 pass
-            if type(node.left) == ast.BinOp:
-                if (node.op in _PLUSMINUS_OPS and node.left.op in _PLUSMINUS_OPS) or (node.op in _MULDIV_OPS and node.left.op in _MULDIV_OPS):
-                    def _mutation():
-                        node.left.right, node.right = node.right, node.left.right
-                        node.op, node.left.op = node.left.op, node.op
-                        _balance(node)
+            try:
+                i = _REORDERABLE_OPS.index(node.op)
+                node2 = node
+                while type(node2.left) == ast.BinOp and node2.left.op in _REORDERABLE_RIGHT[i]:
+                    def _mutation(a=node2.left, b=node):
+                        a.right, b.right = b.right, a.right
+                        a.op, b.op = b.op, a.op
                     mutations.append(_mutation)
-                if node.op in _AND_OR_XOR_OPS and node.left.op == node.op:
+                    node2 = node2.left
+                if _REORDERABLE_LEFT[i]:
                     def _mutation():
-                        node.left.right, node.right = node.right, node.left.right
+                        node2.left, node.right = node.right, node2.left
                     mutations.append(_mutation)
+            except:
+                pass
         elif type(node) == ast.Name:
             used_names.add(node.id)
         elif type(node) == ast.Label:

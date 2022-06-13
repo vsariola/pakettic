@@ -1,0 +1,85 @@
+pactic dlas3 dlas5 dlas7 dlas10 dlas20 lahc1 lahc5 lahc10 lahc20 lahc50 lahc100 anneal
+----------------------------------------------------------------------------------------------
+   128   128   128   128    128    128   128   128    128    128    128     128    128  cthulhu128_unpacked.packed.tic
+   250   248   248   248    248    248   248   247    247    248    248     247    248  dr_may_2022.packed.tic
+   247   245   244   245    244    248   245   245    245    245    245     246    245  illusion03_redux.packed.tic
+   250   242   242   242    243    245   243   243    241    243    242     242    244  illusion04.packed.tic
+   254   248   248   249    251    252   249   250    249    248    248     250    250  illusion05b.packed.tic
+   226   221   218   220    222    222   221   221    218    221    218     221    218  illusion07b.packed.tic
+   255   242   242   241    244    241   240   240    242    241    243     242    241  illusion07d.packed.tic
+   244   243   243   243    243    244   243   243    243    243    243     243    245  liquid_cool.packed.tic
+   256   255   255   259    255    257   255   255    255    255    255     257    255  murkwood.packed.tic
+   255   252   252   252    253    253   252   252    252    252    253     253    252  nevoke256b.packed.tic
+   124   120   120   120    120    120   120   120    120    120    120     120    120  outline128_unpacked.packed.tic
+   248   244   244   241    241    247   244   245    244    244    244     249    240  outline256_unpacked.packed.tic
+   247   237   238   239    238    240   236   236    236    236    237     236    238  pswin.packed.tic
+   512   500   505   501    504    509   499   499    499    499    502     505    502  pulsating-magic-orb.packed.tic
+   508   502   501   504    504    506   502   502    503    501    502     502    508  rave.packed.tic
+   252   249   250   251    251    253   251   250    250    251    251     252    250  requiem_for_a_piggy.packed.tic
+   254   253   250   254    250    253   252   252    252    252    253     249    252  ressurection2.packed.tic
+   247   246   246   246    246    248   245   246    247    246    245     245    247  shadow_city_unpacked.packed.tic
+   128   124   124   125    125    125   124   124    124    124    124     124    125  the.packed.tic
+   160   156   157   160    159    159   156   156    156    156    156     157    157  the_wave.packed.tic
+   254   252   253   253    253    255   252   252    252    252    252     253    254  thrive.packed.tic
+   247   247   248   246    246    247   247   248    247    248    248     246    247  xenium256b.packed.tic
+   507   515   511   515    512    517   516   515    516    515    516     512    515  zxspectrumload.packed.tic
+   487   494   492   493    491    495   494   494    494    493    496     493    494  zxspectrumload_peer_reviewed.packed.tic
+--------------------------------------------------------------------------------------------------------------
+  6540  6463  6459  6475   6471   6512  6462  6463   6460   6461   6469    6472   6475  TOTAL
+
+
+#6739e08
+dlas5
+-------------
+  128 cthulhu128_unpacked.packed.tic
+  250 dr_may_2022.packed.tic
+  245 illusion03_redux.packed.tic
+  242 illusion04.packed.tic
+  250 illusion05b.packed.tic
+  221 illusion07b.packed.tic
+  240 illusion07d.packed.tic
+  240 liquid_cool.packed.tic
+  255 murkwood.packed.tic
+  250 nevoke256b.packed.tic
+  120 outline128_unpacked.packed.tic
+  239 outline256_unpacked.packed.tic
+  235 pswin.packed.tic
+  502 pulsating-magic-orb.packed.tic
+  502 rave.packed.tic
+  250 requiem_for_a_piggy.packed.tic
+  248 ressurection2.packed.tic
+  246 shadow_city_unpacked.packed.tic
+  125 the.packed.tic
+  160 the_wave.packed.tic
+  252 thrive.packed.tic
+  245 xenium256b.packed.tic
+  505 zxspectrumload.packed.tic
+  483 zxspectrumload_peer_reviewed.packed.tic
+------------
+ 6433 bytes
+ 
+ 
+ 3.06.2022  22.30               128 cthulhu128_unpacked.packed.tic
+13.06.2022  22.35               248 dr_may_2022.packed.tic
+13.06.2022  22.38               244 illusion03_redux.packed.tic
+13.06.2022  22.40               242 illusion04.packed.tic
+13.06.2022  22.41               248 illusion05b.packed.tic
+13.06.2022  22.43               217 illusion07b.packed.tic
+13.06.2022  22.44               241 illusion07d.packed.tic
+13.06.2022  22.45               239 liquid_cool.packed.tic
+13.06.2022  22.27               256 murkwood.packed.tic
+13.06.2022  22.47               250 nevoke256b.packed.tic
+13.06.2022  22.48               120 outline128_unpacked.packed.tic
+13.06.2022  22.50               241 outline256_unpacked.packed.tic
+13.06.2022  22.51               235 pswin.packed.tic
+13.06.2022  22.34               502 pulsating-magic-orb.packed.tic
+13.06.2022  22.54               501 rave.packed.tic
+13.06.2022  22.34               251 requiem_for_a_piggy.packed.tic
+13.06.2022  22.56               247 ressurection2.packed.tic
+13.06.2022  22.57               245 shadow_city_unpacked.packed.tic
+13.06.2022  22.59               125 the.packed.tic
+13.06.2022  22.59               160 the_wave.packed.tic
+13.06.2022  22.29               252 thrive.packed.tic
+13.06.2022  23.01               245 xenium256b.packed.tic
+13.06.2022  23.05               505 zxspectrumload.packed.tic
+13.06.2022  23.10               484 zxspectrumload_peer_reviewed.packed.tic
