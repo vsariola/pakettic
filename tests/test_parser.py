@@ -150,6 +150,9 @@ class TestFunction(unittest.TestCase):
         self.assertEqual(parser.chunk.parse_string('f=function(x) end')[0], ast.Block([
                          ast.Assign([ast.Name('f')], [ast.Func(args=[ast.Name('x')], body=ast.Block([]))])]))
 
+    def test_return(self):
+        self.assertEqual(parser.chunk.parse_string('return 0')[0], ast.Block([ast.Return([ast.Numeral(0)])]))
+
 
 class TestCall(unittest.TestCase):
     def test_call(self):

@@ -72,7 +72,7 @@ fieldsep = pp.Forward()
 field = pp.Forward()
 
 # block ::= {stat} [retstat]
-block = pp.Group(stat[0, ...], aslist=True) + retstat[0, 1]
+block = pp.Group(stat[0, ...] + retstat[0, 1], aslist=True)
 block.set_parse_action(lambda t: ast.Block(t[0]))
 chunk = block
 

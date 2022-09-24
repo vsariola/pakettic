@@ -22,6 +22,12 @@ class Block(Node):
 
 
 @dataclass
+class Return(Node):
+    """Represents a return statement in the abstract syntax tree"""
+    exps: list[Node]
+
+
+@dataclass
 class Do(Node):
     """Represents a 'do...end' in the abstract syntax tree"""
     block: Block

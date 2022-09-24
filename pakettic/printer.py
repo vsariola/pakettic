@@ -65,6 +65,14 @@ class Formatter:
                 yield '\n'
 
     @ __traverse.register
+    def _(self, node: ast.Return):
+        yield 'return'
+        for i, v in enumerate(node.exps):
+            if i > 0:
+                yield ','
+            yield from self.__traverse(v)
+
+    @ __traverse.register
     def _(self, node: ast.Perm):
         if self.pretty:
             if node.allow_reorder:

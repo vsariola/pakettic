@@ -346,6 +346,13 @@ def _(node: ast.Block, visitor: Callable[[ast.Node], None]):
 
 
 @ visit.register
+def _(node: ast.Return, visitor: Callable[[ast.Node], None]):
+    visitor(node)
+    for e in node.exps:
+        visit(e, visitor)
+
+
+@ visit.register
 def _(node: ast.Do, visitor: Callable[[ast.Node], None]):
     visitor(node)
     visit(node.block, visitor)
