@@ -11,7 +11,7 @@ def format(node: ast.Node, pretty: bool = False) -> str:
     return Formatter(pretty=pretty).format(node)
 
 
-_hexy = re.compile('[0-9a-fA-F]').search
+_hexy = re.compile('[0-9a-fxA-FX]').search
 _single_quote_translation = str.maketrans({"\n": r"\n",
                                            "\t": r"\t",
                                            "\\": r"\\",
