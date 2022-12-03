@@ -16,17 +16,18 @@ _REORDERABLE_RIGHT = [["+", "-"], ["+", "-"], ["*", "/"], ["*", "/"], ["&"], ["|
 _REORDERABLE_LEFT = [True, False, True, False, True, True, True]
 
 _LOWERS = list(chr(i) for i in range(ord('a'), ord('z') + 1))
-_RESERVED = {'_G', 'TIC', 'SCN', 'BDR', 'OVR', '_VERSION', 'assert', 'btn', 'btnp',
-             'circ', 'circb', 'clip', 'cls', 'collectgarbage', 'coroutine', 'debug',
-             'dofile', 'elli', 'ellib', 'error', 'exit', 'fget', 'font', 'fset',
-             'getmetatable', 'ipairs', 'key', 'keyp', 'line', 'load', 'loadfile',
-             'map', 'math', 'memcpy', 'memset', 'mget', 'mouse', 'mset', 'music',
-             'next', 'package', 'pairs', 'pcall', 'peek', 'peek1', 'peek2', 'peek4',
-             'pix', 'pmem', 'poke', 'poke1', 'poke2', 'poke4', 'print', 'rawequal',
-             'rawget', 'rawlen', 'rawset', 'rect', 'rectb', 'require', 'reset',
-             'select', 'setmetatable', 'sfx', 'spr', 'str', 'string', 'sync',
-             'table', 'textri', 'time', 'tonumber', 'tostring', 'trace', 'tri',
-             'trib', 'tstamp', 'ttri', 'type', 'vbank', 'xpcall'}
+_RESERVED = {'_G', 'BDR', 'SCN', 'BOOT', 'TIC', 'OVR', 'MENU', '_VERSION',
+             'assert', 'btn', 'btnp', 'circ', 'circb', 'clip', 'cls',
+             'collectgarbage', 'coroutine', 'debug', 'dofile', 'elli', 'ellib',
+             'error', 'exit', 'fget', 'font', 'fset', 'getmetatable', 'ipairs',
+             'key', 'keyp', 'line', 'load', 'loadfile', 'map', 'math', 'memcpy',
+             'memset', 'mget', 'mouse', 'mset', 'music', 'next', 'package',
+             'pairs', 'pcall', 'peek', 'peek1', 'peek2', 'peek4', 'pix', 'pmem',
+             'poke', 'poke1', 'poke2', 'poke4', 'print', 'rawequal', 'rawget',
+             'rawlen', 'rawset', 'rect', 'rectb', 'require', 'reset', 'select',
+             'setmetatable', 'sfx', 'spr', 'str', 'string', 'sync', 'table',
+             'textri', 'time', 'tonumber', 'tostring', 'trace', 'tri', 'trib',
+             'tstamp', 'ttri', 'type', 'vbank', 'xpcall'}
 _TWO = ast.Numeral(2)
 
 
