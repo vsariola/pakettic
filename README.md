@@ -1,9 +1,12 @@
 # Pakettic
 
 Pakettic is a command-line tool for minifying and compressing
-[TIC-80](http://tic80.com/) fantasy console carts. The tool is written
-in Python (3.9+) and used especially for
-[sizecoding](http://www.sizecoding.org/wiki/TIC-80).
+[TIC-80](http://tic80.com/) fantasy console carts. The tool is written in Python
+(3.9+) and used especially for
+[sizecoding](http://www.sizecoding.org/wiki/TIC-80). It compresses existing
+carts approximately ~1.2% better than best alternatives, and by using its [magic
+comments](#magic-comments), pakettic might find code that compresses even
+better.
 
 ## Installation
 
