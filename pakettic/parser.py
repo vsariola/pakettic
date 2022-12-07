@@ -18,7 +18,7 @@ vars().update(keywords)
 any_keyword = pp.MatchFirst(keywords.values()).setName("<keyword>")
 
 # Name
-Name = ~any_keyword + pp.Word(pp.alphas, pp.alphanums + "_")
+Name = ~any_keyword + pp.Word(pp.alphas + "_", pp.alphanums + "_")
 
 # LiteralString
 short_literal_string = (pp.QuotedString(
