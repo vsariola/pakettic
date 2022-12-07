@@ -136,12 +136,28 @@ class TestBranching(unittest.TestCase):
                          0], ast.Block([ast.If(test=ast.Boolean(True), body=ast.Block([]), orelse=ast.Block([ast.If(test=ast.Boolean(True), body=ast.Block([]), orelse=ast.Block([ast.Break()]))]))]))
 
 
+class TestMagicComments(unittest.TestCase):
+    def test_reorderings(self):
+        got = parser.parse_string('--{\n::foo::\n::bar::\n--}')
+        expected = Block([Perm([Label("foo"), Label("bar")])])
+        self.assertEqual(got, expected)
+
+    def test_alternative_expressions(self):
+        got = parser.parse_string('x = 1 --| 2')
+        expected = Block([Assign([Name('x')], [Alt([Numeral(1), Numeral(2)])])])
+        self.assertEqual(got, expected)
+
+
 class TestComments(unittest.TestCase):
     def test_single_line_comments(self):
         self.assertEqual(parser.chunk.parse_string('goto --comment\ntest_label')[0], ast.Block([ast.Goto('test_label')]))
         self.assertEqual(
             parser.chunk.parse_string('goto foo--comment\n--comment\ngoto bar')[0],
             ast.Block([ast.Goto('foo'), ast.Goto('bar')]))
+
+    def test_multiline_comments(self):
+        self.assertEqual(parser.chunk.parse_string(
+            'goto --[[goto foo\ngoto bar\n--]]\ntest_label')[0], ast.Block([ast.Goto('test_label')]))
 
 
 class TestFunction(unittest.TestCase):

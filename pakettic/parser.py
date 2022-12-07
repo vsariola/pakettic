@@ -271,7 +271,11 @@ field <<= (LBRACK + exp + RBRACK + EQ + exp).set_parse_action(lambda t: ast.Fiel
 fieldsep <<= COMMA | SEMI
 
 # ignore comments, WARNING: has to be last, as it updates all the rules recursively
-block.ignore(('--' + ~pp.FollowedBy(VLINE | LBRACE | RBRACE)) + pp.restOfLine)
+comment_intro = pp.Literal("--")
+short_comment = comment_intro + ~pp.FollowedBy(VLINE | LBRACE | RBRACE) + pp.restOfLine
+long_comment = comment_intro + LBRACK + LBRACK + ... + pp.Literal("--") + RBRACK + RBRACK
+lua_comment = long_comment | short_comment
+block.ignore(lua_comment)
 
 
 def parse_string(x):
