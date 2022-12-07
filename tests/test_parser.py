@@ -71,10 +71,9 @@ class TestNames(unittest.TestCase):
         self.assertEqual(parser.Name.parse_string('foo')[0], 'foo')
         self.assertEqual(parser.Name.parse_string('Foo')[0], 'Foo')
         self.assertEqual(parser.Name.parse_string('Foo_')[0], 'Foo_')
+        self.assertEqual(parser.Name.parse_string('_Foo')[0], '_Foo')
 
     def test_invalid_names(self):
-        with self.assertRaises(Exception):
-            parser.Name.parse_string('_foo')
         with self.assertRaises(Exception):
             parser.Name.parse_string('1foo')
 
