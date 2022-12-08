@@ -6,7 +6,13 @@ authors = ["Veikko Sariola <5684185+vsariola@users.noreply.github.com>"]
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/vsariola/pakettic"
-keywords = ["TIC-80", "Fantasy Console", "Compression"]
+keywords = ["TIC-80", "Fantasy Console", "Compression", "LUA"]
+classifiers = [
+    "Environment :: Console",
+    "License :: OSI Approved :: MIT License",
+    "Development Status :: 4 - Beta",
+]
+include = ["LICENSE"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
