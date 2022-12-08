@@ -143,7 +143,12 @@ class TestBranching(unittest.TestCase):
 class TestMagicComments(unittest.TestCase):
     def test_reorderings(self):
         got = parser.parse_string('--{\n::foo::\n::bar::\n--}')
-        expected = Block([Perm([Label("foo"), Label("bar")])])
+        expected = Block([Perm([Label("foo"), Label("bar")], allow_reorder=True)])
+        self.assertEqual(got, expected)
+
+    def test_disabled_reordering(self):
+        got = parser.parse_string('--{!\n::foo::\n::bar::\n--}')
+        expected = Block([Perm([Label("foo"), Label("bar")], allow_reorder=False)])
         self.assertEqual(got, expected)
 
     def test_alternative_expressions(self):
