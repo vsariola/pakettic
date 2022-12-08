@@ -10,17 +10,27 @@ better.
 
 ## Installation
 
-Pakettic is not yet published in PyPI, but you can use pip to install it
-with the `-e` option. After checking out the repo to folder `pakettic`,
-run:
+Installing with pip:
+
+```bash
+$ pip install pakettic
+```
+
+Installing the latest main branch from GitHub:
+
+```bash
+$ pip install git+https://github.com/vsariola/pakettic.git@main
+```
+
+Installing a checked out version of the repository:
 
 ```bash
 $ pip install -e path/to/pakettic
 ```
 
-This will install it globally. Alternatively, you can use
-[poetry](https://python-poetry.org/) to install it in a nice virtual
-environment with locked dependencies. Inside the pakettic folder:
+Installing a checked out version of the repository using
+[poetry](https://python-poetry.org/) for a nice virtual environment with locked
+dependencies (run inside the pakettic folder):
 
 ```bash
 $ poetry install
@@ -184,4 +194,4 @@ Coders!
 
 ## License
 
-[MIT](LICENSE)
+[MIT](https://choosealicense.com/licenses/mit/)
