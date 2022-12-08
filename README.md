@@ -195,3 +195,6 @@ Coders!
 ## License
 
 [MIT](https://choosealicense.com/licenses/mit/)
+
+The test corpus carts have their own licenses, see the license files in the
+subdirectories of the [corpus](corpus/) directory.
