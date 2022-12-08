@@ -19,13 +19,17 @@ class TestStringLiterals(unittest.TestCase):
 
     def test_long_string_literals(self):
         self.assertEqual(parser.LiteralString.parse_string(
-            '[[\ntest123]]')[0].value, "test123")
+            '[[test123]]')[0].value, "test123")
+        self.assertEqual(parser.LiteralString.parse_string(
+            '[===[test123]===]')[0].value, "test123")
         self.assertEqual(parser.LiteralString.parse_string(
             '[==[\ntest123]==]')[0].value, "test123")
         self.assertEqual(parser.LiteralString.parse_string(
             '[==[\n[[test123]]]==]')[0].value, "[[test123]]")
         self.assertEqual(parser.LiteralString.parse_string(
             '[[\ntest\n123]]')[0].value, "test\n123")
+        with self.assertRaises(Exception):
+            self.assertEqual(parser.chunk.parse_string('[=[\ntest123]=====]'))
 
 
 class TestNumerals(unittest.TestCase):
@@ -158,6 +162,12 @@ class TestComments(unittest.TestCase):
     def test_multiline_comments(self):
         self.assertEqual(parser.chunk.parse_string(
             'goto --[[goto foo\ngoto bar\n--]]\ntest_label')[0], ast.Block([ast.Goto('test_label')]))
+        self.assertEqual(parser.chunk.parse_string(
+            'goto --[=====[goto foo\ngoto bar\n--]=====]\ntest_label')[0], ast.Block([ast.Goto('test_label')]))
+        self.assertEqual(parser.chunk.parse_string(
+            'goto --[=====[\n\ngoto foo\ngoto bar\n--]=====]\ntest_label')[0], ast.Block([ast.Goto('test_label')]))
+        with self.assertRaises(Exception):
+            self.assertEqual(parser.chunk.parse_string('goto --[==[goto foo\ngoto bar\n--]=======]\ntest_label'))
 
 
 class TestFunction(unittest.TestCase):

@@ -23,13 +23,9 @@ Name = ~any_keyword + pp.Word(pp.alphas + "_", pp.alphanums + "_")
 # LiteralString
 short_literal_string = (pp.QuotedString(
     '"', escChar='\\') | pp.QuotedString('\'', escChar='\\')).setParseAction(lambda toks: ast.LiteralString(toks[0]))
-long_literal_string = pp.QuotedString(
-    quote_char="[[", end_quote_char="]]", multiline=True, convert_whitespace_escapes=False)
-for i in range(3):
-    long_literal_string |= pp.QuotedString(
-        quote_char="[=" + "=" * i + "[", end_quote_char="]=" + "=" * i + "]", multiline=True, convert_whitespace_escapes=False)
-long_literal_string.setParseAction(lambda toks: ast.LiteralString(
-    toks[0][1:] if toks[0].startswith("\n") else toks[0]))
+long_literal_string = pp.Regex(r"\[(=*)\[(?P<str>[\s\S]*?)\]\1\]")
+long_literal_string.setParseAction(lambda t: ast.LiteralString(
+    t["str"][1:] if t["str"].startswith("\n") else t["str"]))
 LiteralString = short_literal_string | long_literal_string
 
 # Numeral
@@ -273,7 +269,7 @@ fieldsep <<= COMMA | SEMI
 # ignore comments, WARNING: has to be last, as it updates all the rules recursively
 comment_intro = pp.Literal("--")
 short_comment = comment_intro + ~pp.FollowedBy(VLINE | LBRACE | RBRACE) + pp.restOfLine
-long_comment = comment_intro + LBRACK + LBRACK + ... + pp.Literal("--") + RBRACK + RBRACK
+long_comment = pp.Regex(r"--\[(=*)\[(?P<str>[\s\S]*?)--\]\1\]")
 lua_comment = long_comment | short_comment
 block.ignore(lua_comment)
 
