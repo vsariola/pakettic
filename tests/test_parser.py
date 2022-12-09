@@ -185,6 +185,25 @@ class TestFlowControl(unittest.TestCase):
         expected = Block([Break()])
         self.assertEqual(got, expected)
 
+    def test_return_no_value(self):
+        got = parser.parse_string('return')
+        expected = Block([Return(exps=[])])
+        self.assertEqual(got, expected)
+
+    def test_return_value(self):
+        got = parser.parse_string('return 42')
+        expected = Block([Return(exps=[Numeral(42)])])
+        self.assertEqual(got, expected)
+
+    def test_return_multiple_values(self):
+        got = parser.parse_string('return 1,2,3')
+        expected = Block([Return(exps=[Numeral(1), Numeral(2), Numeral(3)])])
+        self.assertEqual(got, expected)
+
+    def test_return_always_last(self):
+        with self.assertRaises(Exception):
+            parser.parse_string('return\n::foo::')
+
     def test_single_goto(self):
         got = parser.parse_string('goto test_label')
         expected = Block([Goto('test_label')])
