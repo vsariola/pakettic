@@ -275,4 +275,4 @@ block.ignore(lua_comment)
 
 
 def parse_string(x):
-    return chunk.parse_string(x, parseAll=True)[0]
+    return chunk.parse_string(x, parse_all=True)[0]
