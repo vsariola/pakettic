@@ -6,138 +6,247 @@ from pakettic.ast import *
 
 class TestStringLiterals(unittest.TestCase):
     def test_short_string_literals(self):
-        self.assertEqual(parser.LiteralString.parse_string(
-            '"test123"')[0].value, "test123")
-        self.assertEqual(parser.LiteralString.parse_string(
-            "'test123'")[0].value, "test123")
-        self.assertEqual(parser.LiteralString.parse_string(
-            "'test123\\n'")[0].value, "test123\n")
-        self.assertEqual(parser.LiteralString.parse_string(
-            "'test123\\t'")[0].value, "test123\t")
-        self.assertEqual(parser.LiteralString.parse_string(
-            "'test123\\''")[0].value, "test123'")
+        short_string_literals = [
+            ('"test123"', "test123"),
+            ("'test123'", "test123"),
+            ("'test123\\n'", "test123\n"),
+            ("'test123\\t'", "test123\t"),
+            ("'test123\\''", "test123'"),
+        ]
+        for a, b in short_string_literals:
+            with self.subTest(parsed=a, expected=b):
+                got = parser.LiteralString.parse_string(a, parse_all=True)[0].value
+                self.assertEqual(got, b)
 
     def test_long_string_literals(self):
-        self.assertEqual(parser.LiteralString.parse_string(
-            '[[test123]]')[0].value, "test123")
-        self.assertEqual(parser.LiteralString.parse_string(
-            '[===[test123]===]')[0].value, "test123")
-        self.assertEqual(parser.LiteralString.parse_string(
-            '[==[\ntest123]==]')[0].value, "test123")
-        self.assertEqual(parser.LiteralString.parse_string(
-            '[==[\n[[test123]]]==]')[0].value, "[[test123]]")
-        self.assertEqual(parser.LiteralString.parse_string(
-            '[[\ntest\n123]]')[0].value, "test\n123")
-        with self.assertRaises(Exception):
-            self.assertEqual(parser.chunk.parse_string('[=[\ntest123]=====]'))
+        long_string_literals = [
+            ('[[test123]]', "test123"),
+            ('[===[test123]===]', "test123"),
+            ('[==[\ntest123]==]', "test123"),
+            ('[==[\n[[test123]]]==]', "[[test123]]"),
+            ('[[\ntest\n123]]', "test\n123"),
+        ]
+        for a, b in long_string_literals:
+            with self.subTest(parsed=a, expected=b):
+                got = parser.LiteralString.parse_string(a, parse_all=True)[0].value
+                self.assertEqual(got, b)
+
+    def test_bad_string_literals(self):
+        bad_string_literals = [
+            '[=[\ntest123]=====]',
+            '"test123',
+            '"test123\'',
+        ]
+        for a in bad_string_literals:
+            with self.subTest(parsed=a):
+                with self.assertRaises(Exception):
+                    parser.LiteralString.parse_string(a, parse_all=True)
 
 
 class TestNumerals(unittest.TestCase):
     def test_ints(self):
-        res = parser.Numeral.parse_string('123')[0]
-        self.assertEqual(res, ast.Numeral(123, 0, 0))
-        self.assertEqual(parser.Numeral.parse_string(
-            '50000000')[0], ast.Numeral(50000000, 0, 0))
-        self.assertEqual(parser.Numeral.parse_string('50')
-                         [0], ast.Numeral(50, 0, 0))
+        ints = [
+            ('123', Numeral(123, 0, 0)),
+            ('50000000', Numeral(50000000, 0, 0)),
+            ('50', Numeral(50, 0, 0)),
+        ]
+        for a, b in ints:
+            with self.subTest(parsed=a, expected=b):
+                got = parser.Numeral.parse_string(a, parse_all=True)[0]
+                self.assertEqual(got, b)
 
     def test_fractionals(self):
-        self.assertEqual(parser.Numeral.parse_string(
-            '0.123')[0], ast.Numeral(0, 321, 0))
-        self.assertEqual(parser.Numeral.parse_string(
-            '.6192')[0], ast.Numeral(0, 2916, 0))
-        with self.assertRaises(Exception):
-            parser.Numeral.parse_string('. 123')
+        fractionals = [
+            ('0.123', Numeral(0, 321, 0)),
+            ('.6192', Numeral(0, 2916, 0)),
+        ]
+        for a, b in fractionals:
+            with self.subTest(parsed=a, expected=b):
+                got = parser.Numeral.parse_string(a, parse_all=True)[0]
+                self.assertEqual(got, b)
+
+    def test_bad_numerals(self):
+        bad_numerals = [
+            '. 123',
+            '1 .0',
+        ]
+        for a in bad_numerals:
+            with self.subTest(parsed=a):
+                with self.assertRaises(Exception):
+                    parser.Numeral.parse_string(a, parse_all=True)
 
     def test_exponents(self):
-        self.assertEqual(parser.Numeral.parse_string(
-            '1e5')[0], ast.Numeral(1, 0, 5))
-        self.assertEqual(parser.Numeral.parse_string(
-            '1.5e10')[0], ast.Numeral(1, 5, 10))
-        with self.assertRaises(Exception):
-            parser.Numeral.parse_string('. 123')
+        exponents = [
+            ('1e5', Numeral(1, 0, 5)),
+            ('1.5e10', Numeral(1, 5, 10)),
+        ]
+        for a, b in exponents:
+            with self.subTest(parsed=a, expected=b):
+                got = parser.Numeral.parse_string(a, parse_all=True)[0]
+                self.assertEqual(got, b)
 
-    def test_hex(self):
-        self.assertEqual(parser.Numeral.parse_string(
-            '0xff')[0], ast.Numeral(255, hex=True))
-        self.assertEqual(parser.Numeral.parse_string(
-            '0Xff')[0], ast.Numeral(255, hex=True))
-        self.assertEqual(parser.Numeral.parse_string(
-            '0XFF')[0], ast.Numeral(255, hex=True))
-        self.assertEqual(parser.Numeral.parse_string(
-            '0xFF.A')[0], ast.Numeral(255, 10, hex=True))
-        self.assertEqual(parser.Numeral.parse_string(
-            '0xFF.Ap5')[0], ast.Numeral(255, 10, 5, hex=True))
+    def test_hex_numerals(self):
+        hex_numerals = [
+            ('0xff', Numeral(255, hex=True)),
+            ('0Xff', Numeral(255, hex=True)),
+            ('0XFF', Numeral(255, hex=True)),
+            ('0xFF.A', Numeral(255, 10, hex=True)),
+            ('0xFF.Ap5', Numeral(255, 10, 5, hex=True)),
+        ]
+        for a, b in hex_numerals:
+            with self.subTest(parsed=a, expected=b):
+                got = parser.Numeral.parse_string(a, parse_all=True)[0]
+                self.assertEqual(got, b)
 
 
 class TestNames(unittest.TestCase):
     def test_valid_names(self):
-        self.assertEqual(parser.Name.parse_string('foo')[0], 'foo')
-        self.assertEqual(parser.Name.parse_string('Foo')[0], 'Foo')
-        self.assertEqual(parser.Name.parse_string('Foo_')[0], 'Foo_')
-        self.assertEqual(parser.Name.parse_string('_Foo')[0], '_Foo')
+        valid_names = [
+            'foo', 'Foo', 'Foo_', '_Foo', 'iff', 'repeatuntil'
+        ]
+        for a in valid_names:
+            with self.subTest(parsed=a):
+                try:
+                    parser.Name.parse_string(a, parse_all=True)
+                except:
+                    self.fail(f"{a} should have been a valid name")
 
     def test_invalid_names(self):
-        with self.assertRaises(Exception):
-            parser.Name.parse_string('1foo')
-
-    def test_keywords(self):
-        self.assertEqual(parser.Name.parse_string('iff')[0], 'iff')
-        with self.assertRaises(Exception):
-            parser.Name.parse_string('if')
-        with self.assertRaises(Exception):
-            parser.Name.parse_string('break')
+        invalid_names = [
+            '1foo', '#Foo', '@foo',
+            'and', 'break', 'do', 'break', 'else', 'elseif',
+            'end', 'false', 'for', 'function', 'if',
+            'in', 'local', 'nil', 'not', 'or',
+            'repeat', 'return', 'then', 'true', 'until', 'while'
+        ]
+        for a in invalid_names:
+            with self.subTest(parsed=a):
+                with self.assertRaises(Exception):
+                    parser.Name.parse_string(a, parse_all=True)
 
 
 class TestAssignments(unittest.TestCase):
-    def test_singles(self):
-        self.assertEqual(parser.chunk.parse_string('x=5')[0], ast.Block([ast.Assign([ast.Name('x')], [ast.Numeral(5)])]))
+    def test_valid_assignments(self):
+        valid_assignments = [
+            ('x=5', ([Name('x')], [Numeral(5)])),
+            ('x,y=1,2', ([Name('x'), Name('y')], [Numeral(1), Numeral(2)])),
+            # LUA does not enforce left and right having same number of items
+            # y becomes nil here:
+            ('x,y=1', ([Name('x'), Name('y')], [Numeral(1)])),
+            ('x,y=1,2,3', ([Name('x'), Name('y')], [Numeral(1), Numeral(2), Numeral(3)])),
+        ]
+        for a, b in valid_assignments:
+            with self.subTest(parsed=a, expected=b):
+                got = parser.chunk.parse_string(a, parse_all=True)[0]
+                expected = Block([Assign(b[0], b[1])])
+                self.assertEqual(got, expected)
 
-    def test_tuples(self):
-        self.assertEqual(parser.chunk.parse_string('x,y=1,2')[0], ast.Block([ast.Assign(
-            [ast.Name('x'), ast.Name('y')], [ast.Numeral(1), ast.Numeral(2)])]))
+    def test_invalid_assignments(self):
+        invalid_assignments = [
+            '1=x',
+            'x=if',
+            'y=',
+        ]
+        for a in invalid_assignments:
+            with self.subTest(parsed=a):
+                with self.assertRaises(Exception):
+                    parser.chunk.parse_string(a, parse_all=True)
 
 
 class TestFlowControl(unittest.TestCase):
-    def test_labels(self):
-        self.assertEqual(parser.chunk.parse_string('::test_label::')[0], ast.Block([ast.Label('test_label')]))
+    def test_valid_labels(self):
+        valid_labels = [
+            ('::foo::', 'foo'),
+            ('::Foo::', 'Foo'),
+            ('::Foo_::', 'Foo_'),
+            ('::_Foo::', '_Foo'),
+            ('::iff::', 'iff'),
+            ('::repeatuntil::', 'repeatuntil'),
+        ]
+        for a, b in valid_labels:
+            with self.subTest(parsed=a, expected=b):
+                got = parser.chunk.parse_string(a, parse_all=True)[0]
+                expected = Block([Label(b)])
+                self.assertEqual(got, expected)
+
+    def test_invalid_labels(self):
+        invalid_labels = [
+            '::foo:',
+            '::if::',
+            '::1::',
+        ]
+        for a in invalid_labels:
+            with self.subTest(parsed=a):
+                with self.assertRaises(Exception):
+                    parser.chunk.parse_string(a, parse_all=True)
 
     def test_break(self):
-        self.assertEqual(parser.chunk.parse_string('break')[0], ast.Block([ast.Break()]))
+        got = parser.parse_string('break')
+        expected = Block([Break()])
+        self.assertEqual(got, expected)
 
-    def test_goto(self):
-        self.assertEqual(parser.chunk.parse_string('goto test_label')[0], ast.Block([ast.Goto('test_label')]))
-        self.assertEqual(parser.chunk.parse_string('goto foo;goto bar')[0], ast.Block([ast.Goto('foo'), ast.Goto('bar')]))
+    def test_single_goto(self):
+        got = parser.parse_string('goto test_label')
+        expected = Block([Goto('test_label')])
+        self.assertEqual(got, expected)
 
-    def test_block(self):
-        self.assertEqual(parser.parse_string('do break end'), ast.Block([ast.Do(ast.Block([ast.Break()]))]))
+    def test_multiple_gotos(self):
+        got = parser.parse_string('goto foo;goto bar')
+        expected = Block([Goto('foo'), Goto('bar')])
+        self.assertEqual(got, expected)
+
+    def test_do_block(self):
+        got = parser.parse_string('do break end')
+        expected = Block([Do(Block([Break()]))])
+        self.assertEqual(got, expected)
 
     def test_while(self):
-        self.assertEqual(parser.chunk.parse_string('while true do break end')[
-                         0], ast.Block([ast.While(ast.Boolean(True), ast.Block([ast.Break()]))]))
+        got = parser.parse_string('while true do break end')
+        expected = Block([While(Boolean(True), Block([Break()]))])
+        self.assertEqual(got, expected)
 
     def test_repeat(self):
-        self.assertEqual(parser.chunk.parse_string('repeat break until true')[
-                         0], ast.Block([ast.Repeat(ast.Boolean(True), ast.Block([ast.Break()]))]))
+        got = parser.parse_string('repeat break until true')
+        expected = Block([Repeat(Boolean(True), Block([Break()]))])
+        self.assertEqual(got, expected)
 
     def test_ranged_for_loop(self):
-        self.assertEqual(
-            parser.chunk.parse_string('for i = 0,5 do break end')[0],
-            ast.Block([ast.ForRange(var=ast.Name('i'), lb=ast.Numeral(0), ub=ast.Numeral(5), step=None, body=ast.Block([ast.Break()]))]))
+        got = parser.parse_string('for i = 0,5 do break end')
+        expected = Block([
+            ForRange(
+                var=Name('i'),
+                lb=Numeral(0),
+                ub=Numeral(5),
+                step=None,
+                body=Block([Break()])
+            ),
+        ])
+        self.assertEqual(got, expected)
 
 
 class TestBranching(unittest.TestCase):
     def test_if(self):
-        self.assertEqual(parser.chunk.parse_string('if true then end')[0], ast.Block(
-            [ast.If(test=ast.Boolean(True), body=ast.Block([]), orelse=None)]))
+        got = parser.parse_string('if true then end')
+        expected = Block([If(test=Boolean(True), body=Block([]), orelse=None)])
+        self.assertEqual(got, expected)
 
     def test_else(self):
-        self.assertEqual(parser.chunk.parse_string('if true then else break end')[
-                         0], ast.Block([ast.If(test=ast.Boolean(True), body=ast.Block([]), orelse=ast.Block([ast.Break()]))]))
+        got = parser.parse_string('if true then else break end')
+        expected = Block([If(test=Boolean(True), body=Block([]), orelse=Block([Break()]))])
+        self.assertEqual(got, expected)
 
     def test_elseif(self):
-        self.assertEqual(parser.chunk.parse_string('if true then elseif true then else break end')[
-                         0], ast.Block([ast.If(test=ast.Boolean(True), body=ast.Block([]), orelse=ast.Block([ast.If(test=ast.Boolean(True), body=ast.Block([]), orelse=ast.Block([ast.Break()]))]))]))
+        got = parser.parse_string('if true then elseif true then else break end')
+        expected = Block([
+            If(
+                test=Boolean(True),
+                body=Block([]),
+                orelse=Block([
+                    If(test=Boolean(True), body=Block([]), orelse=Block([Break()]))
+                ])
+            )
+        ])
+        self.assertEqual(got, expected)
 
 
 class TestMagicComments(unittest.TestCase):
@@ -159,29 +268,53 @@ class TestMagicComments(unittest.TestCase):
 
 class TestComments(unittest.TestCase):
     def test_single_line_comments(self):
-        self.assertEqual(parser.chunk.parse_string('goto --comment\ntest_label')[0], ast.Block([ast.Goto('test_label')]))
-        self.assertEqual(
-            parser.chunk.parse_string('goto foo--comment\n--comment\ngoto bar')[0],
-            ast.Block([ast.Goto('foo'), ast.Goto('bar')]))
+        cases = [
+            ('goto --comment\ntest_label', [Goto('test_label')]),
+            ('goto foo--comment\n--comment\ngoto bar', [Goto('foo'), Goto('bar')]),
+        ]
+        for a, b in cases:
+            expected = Block(b)
+            with self.subTest(parsed=a, expected=expected):
+                got = parser.parse_string(a)
+                self.assertEqual(got, expected)
 
     def test_multiline_comments(self):
-        self.assertEqual(parser.chunk.parse_string(
-            'goto --[[goto foo\ngoto bar\n--]]\ntest_label')[0], ast.Block([ast.Goto('test_label')]))
-        self.assertEqual(parser.chunk.parse_string(
-            'goto --[=====[goto foo\ngoto bar\n--]=====]\ntest_label')[0], ast.Block([ast.Goto('test_label')]))
-        self.assertEqual(parser.chunk.parse_string(
-            'goto --[=====[\n\ngoto foo\ngoto bar\n--]=====]\ntest_label')[0], ast.Block([ast.Goto('test_label')]))
-        with self.assertRaises(Exception):
-            self.assertEqual(parser.chunk.parse_string('goto --[==[goto foo\ngoto bar\n--]=======]\ntest_label'))
+        cases = [
+            ('--', []),
+            ('goto --[[goto foo\ngoto bar\n--]]\ntest_label', [Goto('test_label')]),
+            ('goto --[=====[goto foo\ngoto bar\n--]=====]\ntest_label', [Goto('test_label')]),
+            ('goto --[=====[\n\ngoto foo\ngoto bar\n--]=====]\ntest_label', [Goto('test_label')]),
+        ]
+        for a, b in cases:
+            expected = Block(b)
+            with self.subTest(parsed=a, expected=expected):
+                got = parser.parse_string(a)
+                self.assertEqual(got, expected)
+
+    def test_invalid_comments(self):
+        invalid_comments = [
+            'goto --[==[goto foo\ngoto bar\n--]=======]\ntest_label',
+            '-',
+            '//'
+        ]
+        for a in invalid_comments:
+            with self.subTest(parsed=a):
+                with self.assertRaises(Exception):
+                    parser.chunk.parse_string(a, parse_all=True)
 
 
 class TestFunction(unittest.TestCase):
     def test_function(self):
-        self.assertEqual(parser.chunk.parse_string('f=function(x) end')[0], ast.Block([
-                         ast.Assign([ast.Name('f')], [ast.Func(args=[ast.Name('x')], body=ast.Block([]))])]))
+        got = parser.parse_string('f=function(x) end')
+        expected = Block([
+            Assign([Name('f')], [Func(args=[Name('x')], body=Block([]))])
+        ])
+        self.assertEqual(got, expected)
 
     def test_return(self):
-        self.assertEqual(parser.chunk.parse_string('return 0')[0], ast.Block([ast.Return([ast.Numeral(0)])]))
+        got = parser.parse_string('return 0')
+        expected = Block([Return([Numeral(0)])])
+        self.assertEqual(got, expected)
 
 
 class TestCall(unittest.TestCase):
@@ -194,27 +327,48 @@ class TestCall(unittest.TestCase):
 class TestBinaryOperators(unittest.TestCase):
     def test_add(self):
         got = parser.parse_string('x = 1 + 2')
-        expected = Block([Assign([Name('x')], [BinOp(left=Numeral(1), op="+", right=Numeral(2))])])
+        expected = Block([
+            Assign(
+                [Name('x')],
+                [BinOp(left=Numeral(1), op="+", right=Numeral(2))]
+            )
+        ])
         self.assertEqual(got, expected)
 
     def test_multiadd(self):
-        self.assertEqual(parser.parse_string('x = 1 + 2 + 3'), ast.Block([ast.Assign([ast.Name('x')], [ast.BinOp(
-            left=ast.BinOp(left=ast.Numeral(1), op="+", right=ast.Numeral(2)), op='+', right=ast.Numeral(3))])]))
+        got = parser.parse_string('x = 1 + 2 + 3')
+        expected = Block([
+            Assign(
+                [Name('x')],
+                [BinOp(left=BinOp(left=Numeral(1), op="+", right=Numeral(2)), op='+', right=Numeral(3))]
+            )
+        ])
+        self.assertEqual(got, expected)
 
     def test_precedence(self):
-        self.assertEqual(parser.parse_string('x = 6+1*2'), ast.Block([ast.Assign([ast.Name('x')], [ast.BinOp(
-            left=ast.Numeral(6), op="+", right=ast.BinOp(left=ast.Numeral(1), op="*", right=ast.Numeral(2)))])]))
+        got = parser.parse_string('x = 6+1*2')
+        expected = Block([
+            Assign(
+                [Name('x')],
+                [BinOp(left=Numeral(6), op="+", right=BinOp(left=Numeral(1), op="*", right=Numeral(2)))]
+            )
+        ])
+        self.assertEqual(got, expected)
 
 
 class TestUnaryOperators(unittest.TestCase):
     def test_minus(self):
         got = parser.parse_string('x = -1')
-        expected = Block([Assign([Name('x')], [UnaryOp(op="-", operand=Numeral(1))])])
+        expected = Block([
+            Assign([Name('x')], [UnaryOp(op="-", operand=Numeral(1))])
+        ])
         self.assertEqual(got, expected)
 
     def test_association(self):
         got = parser.parse_string('x = -#a')
-        expected = Block([Assign([Name('x')], [UnaryOp(op='-', operand=UnaryOp(op="#", operand=Name("a")))])])
+        expected = Block([
+            Assign([Name('x')], [UnaryOp(op='-', operand=UnaryOp(op="#", operand=Name("a")))])
+        ])
         self.assertEqual(got, expected)
 
     def test_multiadd(self):
@@ -225,6 +379,6 @@ class TestUnaryOperators(unittest.TestCase):
 
 class TestLocals(unittest.TestCase):
     def test_local_vars(self):
-        got = parser.chunk.parse_string('local x = 5')[0]
-        expected = Block([Local(targets=[ast.Name('x')], values=[Numeral(5)])])
+        got = parser.parse_string('local x = 5')
+        expected = Block([Local(targets=[Name('x')], values=[Numeral(5)])])
         self.assertEqual(got, expected)
