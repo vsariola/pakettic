@@ -217,7 +217,16 @@ class Formatter:
 
     @ __traverse.register
     def _(self, node: ast.Local):
-        pass
+        yield 'local'
+        for i, v in enumerate(node.targets):
+            if i > 0:
+                yield ','
+            yield from self.__traverse(v)
+        yield '='
+        for i, v in enumerate(node.values):
+            if i > 0:
+                yield ','
+            yield from self.__traverse(v)
 
     @ __traverse.register
     def _(self, node: ast.Func):

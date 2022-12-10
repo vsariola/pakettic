@@ -401,3 +401,10 @@ class TestLocals(unittest.TestCase):
         got = parser.parse_string('local x = 5')
         expected = Block([Local(targets=[Name('x')], values=[Numeral(5)])])
         self.assertEqual(got, expected)
+
+    def test_local_function(self):
+        got = parser.parse_string('local function f(x) end')
+        expected = Block([
+            Local([Name('f')], [Func(args=[Name('x')], body=Block([]))])
+        ])
+        self.assertEqual(got, expected)

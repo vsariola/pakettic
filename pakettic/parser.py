@@ -119,7 +119,7 @@ local_var.set_parse_action(lambda toks: ast.Local(toks[0], toks[1]))
 func_def = FUNCTION + funcname + funcbody
 func_def.set_parse_action(lambda toks: ast.Assign([toks[0]], [toks[1]]))
 local_func_def = LOCAL + FUNCTION + Name + funcbody
-local_func_def.set_parse_action(lambda toks: ast.Local([toks[0]], [toks[1]]))
+local_func_def.set_parse_action(lambda toks: ast.Local([ast.Name(toks[0])], [toks[1]]))
 
 stat <<= SEMI | \
     label | \
