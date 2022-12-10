@@ -25,7 +25,7 @@ _RESERVED = {'_G', 'BDR', 'SCN', 'BOOT', 'TIC', 'OVR', 'MENU', '_VERSION',
              'pairs', 'pcall', 'peek', 'peek1', 'peek2', 'peek4', 'pix', 'pmem',
              'poke', 'poke1', 'poke2', 'poke4', 'print', 'rawequal', 'rawget',
              'rawlen', 'rawset', 'rect', 'rectb', 'require', 'reset', 'select',
-             'setmetatable', 'sfx', 'spr', 'str', 'string', 'sync', 'table',
+             'self', 'setmetatable', 'sfx', 'spr', 'str', 'string', 'sync', 'table',
              'textri', 'time', 'tonumber', 'tostring', 'trace', 'tri', 'trib',
              'tstamp', 'ttri', 'type', 'vbank', 'xpcall'}
 _TWO = ast.Numeral(2)
