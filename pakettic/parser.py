@@ -116,8 +116,15 @@ for_in = FOR + pp.Group(namelist, aslist=True) + IN + \
 for_in.set_parse_action(lambda toks: ast.ForIn(toks[0], toks[1], toks[2]))
 local_var = LOCAL + pp.Group(namelist, aslist=True) + EQ + explist
 local_var.set_parse_action(lambda toks: ast.Local(toks[0], toks[1]))
-func_def = FUNCTION + funcname + funcbody
-func_def.set_parse_action(lambda toks: ast.Assign([toks[0]], [toks[1]]))
+func_vanilla_def = FUNCTION + funcname + funcbody
+func_vanilla_def.set_parse_action(lambda toks: ast.Assign([toks[0]], [toks[1]]))
+# function t.a.b.c:f (params) body end is syntactic sugar for t.a.b.c.f = function (self, params) body end
+func_member_def = FUNCTION + funcname + COLON + Name + funcbody
+func_member_def.set_parse_action(lambda t: ast.Assign(
+    [ast.Index(t[0], ast.LiteralString(t[1]))],
+    [ast.Func(args=[ast.Name('self')] + t[2].args, body=t[2].body)]
+))
+func_def = func_vanilla_def | func_member_def
 local_func_def = LOCAL + FUNCTION + Name + funcbody
 local_func_def.set_parse_action(lambda toks: ast.Local([ast.Name(toks[0])], [toks[1]]))
 
@@ -147,9 +154,9 @@ label <<= pp.Literal('::').suppress() + Name + pp.Literal('::').suppress()
 label.set_parse_action(lambda toks: ast.Label(toks[0]))
 
 # funcname ::= Name {‘.’ Name} [‘:’ Name]
-funcname <<= Name + (PERIOD + Name)[0, ...] + (COLON + Name)[0, 1]
+funcname <<= Name + (PERIOD + Name)[0, ...]
 funcname.set_parse_action(lambda t: functools.reduce(lambda x, y: ast.Index(x, ast.LiteralString(y)), t[1:], ast.Name(t[0])))
-# TODO: is there a special meaning for that last COLON Name
+# the [‘:’ Name] case is handled separately
 
 # varlist ::= var {‘,’ var}
 varlist <<= pp.Group(var + (COMMA + var)[0, ...], aslist=True)
