@@ -441,8 +441,15 @@ def _(node: ast.Field, visitor: Callable[[ast.Node], None]):
 
 
 @ visit.register(ast.MethodCall)
+def _(node: ast.MethodCall, visitor: Callable[[ast.Node], None]):
+    visitor(node)
+    visit(node.value, visitor)
+    for a in node.args:
+        visit(a, visitor)
+
+
 @ visit.register(ast.Call)
-def _(node: Union[ast.Call, ast.MethodCall], visitor: Callable[[ast.Node], None]):
+def _(node: ast.Call, visitor: Callable[[ast.Node], None]):
     visitor(node)
     visit(node.func, visitor)
     for a in node.args:
