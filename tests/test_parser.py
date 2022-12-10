@@ -242,6 +242,24 @@ class TestFlowControl(unittest.TestCase):
         ])
         self.assertEqual(got, expected)
 
+    def test_for_in_loop(self):
+        cases = [
+            ('for k in a do end', ([Name('k')], [Name('a')], [])),
+            ('for k,v in a,v do end', ([Name('k'), Name('v')], [Name('a'), Name('v')], [])),
+            ('for k,v in a do end', ([Name('k'), Name('v')], [Name('a')], [])),
+        ]
+        for a, b in cases:
+            with self.subTest(parsed=a, expected=b):
+                got = parser.parse_string(a)
+                expected = Block([
+                    ForIn(
+                        names=b[0],
+                        exps=b[1],
+                        body=Block(b[2])
+                    ),
+                ])
+                self.assertEqual(got, expected)
+
 
 class TestBranching(unittest.TestCase):
     def test_if(self):

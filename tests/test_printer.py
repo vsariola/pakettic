@@ -15,6 +15,7 @@ class TestPrinter(unittest.TestCase):
             'local y=42',
             'do break end',
             'for i=1,10 do end',
+            'for k,v in a do end',
             'x=0xAC',
             'x=0xAC x=0xFF',
             '::foo::',
