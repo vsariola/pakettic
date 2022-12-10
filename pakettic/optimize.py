@@ -172,8 +172,9 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
         return _mut
     used_labels = sorted(used_labels)
     mutations.extend((label_repl(a, b) for a in used_labels for b in _LOWERS if a != b))
-    mutation = rand.choice(mutations)
-    mutation()
+    if len(mutations) > 0:
+        mutation = rand.choice(mutations)
+        mutation()
     return new_root
 
 
