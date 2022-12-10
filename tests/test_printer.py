@@ -7,6 +7,11 @@ from pakettic.ast import *
 class TestPrinter(unittest.TestCase):
     def test_printing_parsed_code(self):
         cases = [
+            'a={42,x,0}',
+            'a={42;x;0}',
+            'a={[1]=5,[42]=0}',
+            'a={x=2,y=4}',
+            'a={42,x=4,[4]=1}',
             'obj:f(42)',
             'function f(x) end',
             'function f.foo(x) end',

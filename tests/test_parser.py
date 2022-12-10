@@ -440,3 +440,19 @@ class TestVarPostfix(unittest.TestCase):
             with self.subTest(parsed=a, expected=expected):
                 got = parser.var.parse_string(a, parse_all=True)
                 self.assertEqual(got, expected)
+
+
+class TestTableConstructors(unittest.TestCase):
+    def test_table_constructors(self):
+        cases = [
+            ('{42,x,0}', [Field(Numeral(42)), Field(Name('x')), Field(Numeral(0))]),
+            ('{42;x;0}', [Field(Numeral(42)), Field(Name('x')), Field(Numeral(0))]),
+            ('{[1]=5,[42]=0}', [Field(Numeral(5), Numeral(1)), Field(Numeral(0), Numeral(42))]),
+            ('{x=2,y=4}', [Field(Numeral(2), LiteralString('x')), Field(Numeral(4), LiteralString('y'))]),
+            ('{42,x=4,[4]=1}', [Field(Numeral(42)), Field(Numeral(4), LiteralString('x')), Field(Numeral(1), Numeral(4))]),
+        ]
+        for a, b in cases:
+            expected = Table(b)
+            with self.subTest(parsed=a, expected=expected):
+                got = parser.tableconstructor.parse_string(a, parse_all=True)[0]
+                self.assertEqual(got, expected)
