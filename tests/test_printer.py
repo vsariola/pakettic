@@ -8,6 +8,9 @@ class TestPrinter(unittest.TestCase):
     def test_printing_parsed_code(self):
         cases = [
             'x=5',
+            'p.x=5',
+            'p[5]=5',
+            'p[5].x=5',
             'x,y=1,2',
             'local y=42',
             'do break end',

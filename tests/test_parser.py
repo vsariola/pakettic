@@ -408,3 +408,17 @@ class TestLocals(unittest.TestCase):
             Local([Name('f')], [Func(args=[Name('x')], body=Block([]))])
         ])
         self.assertEqual(got, expected)
+
+
+class TestVarPostfix(unittest.TestCase):
+    def test_arrays(self):
+        cases = [
+            ('a[5]', Index(Name('a'), Numeral(5))),
+            ('a[5][i]', Index(Index(Name('a'), Numeral(5)), Name('i'))),
+            ('a[5].x', Index(Index(Name('a'), Numeral(5)), LiteralString('x'))),
+            ('p.x[2]', Index(Index(Name('p'), LiteralString('x')), Numeral(2))),
+        ]
+        for a, expected in cases:
+            with self.subTest(parsed=a, expected=expected):
+                got = parser.var.parse_string(a, parse_all=True)
+                self.assertEqual(got, expected)
