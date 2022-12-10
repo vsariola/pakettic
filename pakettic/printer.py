@@ -308,7 +308,15 @@ class Formatter:
 
     @ __traverse.register
     def _(self, node: ast.MethodCall):
-        pass  # TODO
+        yield from self.__traverse(node.value)
+        yield ':'
+        yield from self.__traverse(node.method)
+        yield '('
+        for i, v in enumerate(node.args):
+            if i > 0:
+                yield ','
+            yield from self.__traverse(v)
+        yield ')'
 
     @ __traverse.register
     def _(self, node: ast.If):

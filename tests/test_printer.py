@@ -7,6 +7,7 @@ from pakettic.ast import *
 class TestPrinter(unittest.TestCase):
     def test_printing_parsed_code(self):
         cases = [
+            'obj:f(42)',
             'function f(x) end',
             'function f.foo(x) end',
             'function f:bar(x) end',
