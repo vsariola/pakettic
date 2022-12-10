@@ -98,7 +98,7 @@ class Formatter:
         if self.pretty:
             yield '\n'
         self.indent += 1
-        yield from self.__traverse(node.body)
+        yield from self.__traverse(node.block)
         self.indent -= 1
         if self.pretty:
             yield '  ' * self.indent
