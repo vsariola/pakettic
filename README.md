@@ -192,6 +192,8 @@ want to try more complicated expressions e.g. `(x//256)--|(x>>8)`
 [Veikko Sariola](https://github.com/vsariola) aka pestis/brainlez
 Coders!
 
+[wojciech-graj](https://github.com/wojciech-graj)
+
 ## License
 
 [MIT](https://choosealicense.com/licenses/mit/)
