@@ -187,10 +187,16 @@ want to try more complicated expressions e.g. `(x//256)--|(x>>8)`
   be without side effects. If they have side-effects, the swapping might
   inadvertedly swap the execution order of the two branches.
 
-## Credits
+## Contributors
 
-[Veikko Sariola](https://github.com/vsariola) aka pestis/brainlez
-Coders!
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
 
 ## License
 
