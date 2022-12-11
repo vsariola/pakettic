@@ -1,6 +1,6 @@
 # Pakettic
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-2-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 Pakettic is a command-line tool for minifying and compressing
@@ -199,6 +199,7 @@ want to try more complicated expressions e.g. `(x//256)--|(x>>8)`
   <tbody>
     <tr>
       <td align="center"><a href="https://github.com/vsariola"><img src="https://avatars.githubusercontent.com/u/5684185?v=4?s=100" width="100px;" alt="Veikko Sariola"/><br /><sub><b>Veikko Sariola</b></sub></a><br /><a href="https://github.com/vsariola/pakettic/commits?author=vsariola" title="Code">💻</a></td>
+      <td align="center"><a href="https://github.com/wojciech-graj"><img src="https://avatars.githubusercontent.com/u/71249593?v=4?s=100" width="100px;" alt="wojciech-graj"/><br /><sub><b>wojciech-graj</b></sub></a><br /><a href="https://github.com/vsariola/pakettic/commits?author=wojciech-graj" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>
