@@ -180,7 +180,7 @@ def unaryAction(t):
     return functools.reduce(lambda x, y: ast.UnaryOp(op=y, operand=x), t[0][-2::-1], t[0][-1])
 
 
-nil = pp.Keyword("nil").set_parse_action(lambda: ast.Nil)
+nil = pp.Keyword("nil").set_parse_action(lambda: ast.Nil())
 false = pp.Keyword("false").set_parse_action(lambda: ast.Boolean(False))
 true = pp.Keyword("true").set_parse_action(lambda: ast.Boolean(True))
 ellipsis = pp.Literal("...").set_parse_action(lambda: ast.Ellipsis())
