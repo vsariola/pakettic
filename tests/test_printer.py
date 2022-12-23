@@ -34,6 +34,7 @@ class TestPrinter(unittest.TestCase):
             'while true do end',
             'repeat break until true',
             'if true then end',
+            'if a==nil then end',
             'if true then else break end',
             'if true then elseif true then else break end',
             'f=function(x) end',

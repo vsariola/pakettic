@@ -134,6 +134,9 @@ class TestAssignments(unittest.TestCase):
             # y becomes nil here:
             ('x,y=1', ([Name('x'), Name('y')], [Numeral(1)])),
             ('x,y=1,2,3', ([Name('x'), Name('y')], [Numeral(1), Numeral(2), Numeral(3)])),
+            ('x=nil', ([Name('x')], [Nil()])),
+            ('x=true', ([Name('x')], [Boolean(True)])),
+            ('x=false', ([Name('x')], [Boolean(False)])),
         ]
         for a, b in valid_assignments:
             with self.subTest(parsed=a, expected=b):
