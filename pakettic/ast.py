@@ -193,7 +193,7 @@ class Hint(Node):
 
 
 _precedence = \
-    dict.fromkeys(['---'], 1) | \
+    dict.fromkeys(['--|'], 1) | \
     dict.fromkeys(['^'], 2) | \
     dict.fromkeys(['*', '/', '//', '%'], 4) | \
     dict.fromkeys(['+', '-'], 5) | \
