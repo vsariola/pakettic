@@ -18,6 +18,8 @@ class TestPrinter(unittest.TestCase):
             'function f:bar(x) end',
             'function f.foo:bar(x) end',
             'x=5',
+            'x=-1^2',
+            'x=(-1)^2',
             'p.x=5',
             'p[5]=5',
             'p[5].x=5',

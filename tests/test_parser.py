@@ -405,11 +405,15 @@ class TestUnaryOperators(unittest.TestCase):
         self.assertEqual(got, expected)
 
     def test_association(self):
-        got = parser.parse_string('x = -#a')
-        expected = Block([
-            Assign([Name('x')], [UnaryOp(op='-', operand=UnaryOp(op="#", operand=Name("a")))])
-        ])
-        self.assertEqual(got, expected)
+        cases = [
+            ('-#a', UnaryOp(op='-', operand=UnaryOp(op="#", operand=Name("a")))),
+            ('-1^2', UnaryOp(op='-', operand=BinOp(left=Numeral(1), op="^", right=Numeral(2)))),
+            ('(-1)^2', BinOp(left=UnaryOp(op='-', operand=Numeral(1)), op="^", right=Numeral(2))),
+        ]
+        for a, expected in cases:
+            with self.subTest(parsed=a, expected=expected):
+                got = parser.exp.parse_string(a, parse_all=True)[0]
+                self.assertEqual(got, expected)
 
     def test_multiadd(self):
         got = parser.parse_string('x = 1 + 2 + 3')

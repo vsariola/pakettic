@@ -188,8 +188,8 @@ exp <<= pp.infixNotation(
     nil | false | true | Numeral | LiteralString | ellipsis | functiondef | prefixexp | tableconstructor,
     [
         (pp.Literal('--|').suppress(), 2, pp.opAssoc.LEFT, alt),
-        (pp.oneOf('not # - ~'), 1, pp.OpAssoc.RIGHT, unaryAction),
         ('^', 2, pp.opAssoc.RIGHT, right_assoc),
+        (pp.oneOf('not # - ~'), 1, pp.OpAssoc.RIGHT, unaryAction),
         (pp.oneOf('* / // %'), 2, pp.OpAssoc.LEFT, left_assoc),
         (pp.oneOf('+ -'), 2, pp.OpAssoc.LEFT, left_assoc),
         ('..', 2, pp.OpAssoc.LEFT, left_assoc),
