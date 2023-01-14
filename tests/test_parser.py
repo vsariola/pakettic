@@ -59,6 +59,9 @@ class TestNumerals(unittest.TestCase):
         fractionals = [
             ('0.123', Numeral(0, 321, 0)),
             ('.6192', Numeral(0, 2916, 0)),
+            ('1.', Numeral(1, 0, 0)),
+            ('1.0', Numeral(1, 0, 0)),
+            ('.1', Numeral(0, 1, 0)),
         ]
         for a, b in fractionals:
             with self.subTest(parsed=a, expected=b):
@@ -69,6 +72,7 @@ class TestNumerals(unittest.TestCase):
         bad_numerals = [
             '. 123',
             '1 .0',
+            '.',
         ]
         for a in bad_numerals:
             with self.subTest(parsed=a):
@@ -79,6 +83,7 @@ class TestNumerals(unittest.TestCase):
         exponents = [
             ('1e5', Numeral(1, 0, 5)),
             ('1.5e10', Numeral(1, 5, 10)),
+            ('.5e10', Numeral(0, 5, 10)),
         ]
         for a, b in exponents:
             with self.subTest(parsed=a, expected=b):
