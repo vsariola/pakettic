@@ -445,7 +445,7 @@ class TestVarPostfix(unittest.TestCase):
         ]
         for a, expected in cases:
             with self.subTest(parsed=a, expected=expected):
-                got = parser.var.parse_string(a, parse_all=True)
+                got = parser.var.parse_string(a, parse_all=True)[0]
                 self.assertEqual(got, expected)
 
 
