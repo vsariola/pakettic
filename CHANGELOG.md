@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - The operator precedence of ^ vs. unary operators was wrong
+- Numerals ending in . (e.g. "1.") gave parse error, but should be allowed
 
 ## [1.0.1] - 2023-01-02
 

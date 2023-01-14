@@ -31,7 +31,7 @@ LiteralString = short_literal_string | long_literal_string
 # Numeral
 base10 = pp.Regex(r"(?P<whole>\d+)(?:\.(?P<frac>\d*))?(?:[eE](?P<exp>[+-]?\d+))?")
 base10.set_parse_action(lambda t: ast.Numeral(int(t["whole"] or 0), int(
-    t["frac"][::-1]) if t["frac"] is not None else 0, int(t["exp"] or 0)))
+    t["frac"][::-1]) if t["frac"] else 0, int(t["exp"] or 0)))
 
 frac10 = pp.Regex(r"\.(?P<frac>\d+)(?:[eE](?P<exp>[+-]?\d+))?")
 frac10.set_parse_action(lambda t: ast.Numeral(0, int(t["frac"][::-1] or 0), int(t["exp"] or 0)))
