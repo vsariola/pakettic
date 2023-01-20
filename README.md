@@ -1,12 +1,12 @@
 # Pakettic
 
 Pakettic is a command-line tool for minifying and compressing
-[TIC-80](http://tic80.com/) fantasy console carts. The tool is written in Python
-(3.9+) and used especially for
-[sizecoding](http://www.sizecoding.org/wiki/TIC-80). It compresses existing
-carts approximately ~1.2% better than best alternatives, and by using its [magic
-comments](#magic-comments), pakettic might find code that compresses even
-better.
+[TIC-80](http://tic80.com/) fantasy console carts. The tool is written
+in Python (3.9+) and used especially for
+[sizecoding](http://www.sizecoding.org/wiki/TIC-80). It compresses
+existing carts approximately ~1.2% better than best alternatives, and by
+using its [magic comments](#magic-comments), pakettic might find code
+that compresses even better.
 
 ## Installation
 
@@ -29,8 +29,8 @@ $ pip install -e path/to/pakettic
 ```
 
 Installing a checked out version of the repository using
-[poetry](https://python-poetry.org/) for a nice virtual environment with locked
-dependencies (run inside the pakettic folder):
+[poetry](https://python-poetry.org/) for a nice virtual environment with
+locked dependencies (run inside the pakettic folder):
 
 ```bash
 $ poetry install
@@ -100,7 +100,7 @@ include:
     [magic comments](#magic-comments)
 
 Internally, pakettic uses [zopfli](https://github.com/google/zopfli) for
-actual compression.
+the compression.
 
 `load'...'` is parsed as `function()...end` so you can easily recompress
 already compressed carts. Conversely, `function()...end` is replaced
@@ -123,7 +123,7 @@ For example:
  --}
 ```
 
-will try both `a="hello"b="world"` and `b="world"a="hello"` to see if
+will try both `a="hello"b="world"` and `b="world"a="hello"` to see which
 compresses better.
 
 Notice that only complete statements can be reordered. Thus, this will
@@ -152,8 +152,8 @@ be tested, to see if they compress better. For example: `5--|4--|6`
 means that the algorithm will try 4 and 6 in place of the 5. This will
 naturally show up as a comment in LUA so you will have to continue the
 expression on next line if this is in the middle of an expression. `--|`
-has the lowest precedence, even lower than `^` so put parentheses if you
-want to try more complicated expressions e.g. `(x//256)--|(x>>8)`
+has the lowest precedence, even lower than `^`, so put parentheses if
+you want to try more complicated expressions e.g. `(x//256)--|(x>>8)`
 
 ## Tips for command line arguments
 
@@ -186,6 +186,12 @@ want to try more complicated expressions e.g. `(x//256)--|(x>>8)`
 - At the moment, all the branches of swappable operators are assumed to
   be without side effects. If they have side-effects, the swapping might
   inadvertedly swap the execution order of the two branches.
+- The parser can crash with large carts. Carts in the size coding range
+  (few thousand characters) do not seem to cause problems, but crashes
+  have been observed parsing carts with tens of thousands of code
+  characters. This may related to how the pyparsing grammar is defined,
+  which could result in highly recursive parsing and eventually stack
+  overflows.
 
 ## Credits
 
@@ -198,5 +204,5 @@ Coders!
 
 [MIT](https://choosealicense.com/licenses/mit/)
 
-The test corpus carts have their own licenses, see the license files in the
-subdirectories of the [corpus](corpus/) directory.
+The test corpus carts have their own licenses, see the license files in
+the subdirectories of the [corpus](corpus/) directory.
