@@ -14,6 +14,18 @@ _FLIPPED_OPS = ["<", ">", "<=", ">=", "~=", "=="]
 _REORDERABLE_OPS = ["+", "-", "*", "/", "&", "|", "~"]
 _REORDERABLE_RIGHT = [["+", "-"], ["+", "-"], ["*", "/"], ["*", "/"], ["&"], ["|"], ["~"]]
 _REORDERABLE_LEFT = [True, False, True, False, True, True, True]
+_EVALUABLE_OPS = {
+    "+": lambda l, r: l + r,
+    "-": lambda l, r: l - r,
+    "*": lambda l, r: l * r,
+    "/": lambda l, r: l / r,
+    "//": lambda l, r: int(l / r),
+    "%": lambda l, r: l % r,
+    "^": lambda l, r: l ** r,
+    "&": lambda l, r: int(l) & int(r) if int(l)==l and int(r)==r else None,
+    "|": lambda l, r: int(l) | int(r) if int(l)==l and int(r)==r else None,
+    "~": lambda l, r: int(l) ^ int(r) if int(l)==l and int(r)==r else None,
+    }
 
 _LOWERS = list(chr(i) for i in range(ord('a'), ord('z') + 1))
 _RESERVED = {'_G', 'BDR', 'SCN', 'BOOT', 'TIC', 'OVR', 'MENU', '_VERSION',
@@ -100,6 +112,12 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
                     node.op = "*"
                     node.right = copy.deepcopy(node.left)
                 mutations.append(_mutation)
+            if node.op in _EVALUABLE_OPS and type(node.left) == ast.Numeral and type(node.right) == ast.Numeral:
+                value = _EVALUABLE_OPS[node.op](node.left.value, node.right.value)
+                if value != None and int(value) == value:
+                    def _mutation():
+                        replace_node(parent, attr, ast.Numeral(int(value)), node)
+                    mutations.append(_mutation)
         elif type(node) == ast.Name:
             used_names.add(node.id)
         elif type(node) == ast.Label:
@@ -136,6 +154,10 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
             def _mutation2():
                 node.no_hex = not node.no_hex
             mutations.append(_mutation2)
+
+        if node.original != None and parent != None:
+            def _mutation():
+                replace_node(parent, attr, node.original, None)
 
     visit(new_root, _check_mutations)
     used_names = sorted(used_names.difference(_RESERVED))
@@ -176,6 +198,24 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
         mutation = rand.choice(mutations)
         mutation()
     return new_root
+
+
+def replace_node(parent: ast.Node, attr: str, node: ast.Node, old: ast.Node):
+    """
+    Replaces one node in the abstract syntax tree with another.
+    Adds a reference to the old node from the new node's 'original' attribute.
+        Parameters:
+            parent (ast.Node): Root of the abstract syntax tree
+            attr (str): parent attribute which references the node being replaced. Can be "attr.#" to replace an element of a list.
+            node (ast.Node): new node
+            old (ast.Node): old node that is being replaced
+    """
+    node.original = old
+    if "." in attr:
+        a, i = attr.split(".")
+        getattr(parent, a)[int(i)] = node
+    else:
+        setattr(parent, attr, node)
 
 
 def anneal(state: Any, cost_func: Callable[[Any, int], int], steps: int, start_temp: float, end_temp: float, seed: int, mutate_func: Callable[[Any], Any] = mutate) -> Any:
@@ -337,7 +377,8 @@ def visit(node: ast.Node, visitor: Callable[[ast.Node, ast.Node, str], None], pa
             node (ast.Node): A (root) node of the syntax tree to visit
             visitor (Callable[[ast.Node, ast.Node, str], None]): Callback function called for each node
     """
-    visitor(node, parent, attr)
+    if node != None:
+        visitor(node, parent, attr)
 
 
 @ visit.register
