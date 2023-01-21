@@ -64,7 +64,7 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
     used_names = set()
     used_labels = set()
 
-    def _check_mutations(node: ast.Node):
+    def _check_mutations(node: ast.Node, parent: ast.Node, attr: str):
         if type(node) == ast.BinOp:
             try:
                 i = _FLIPPABLE_OPS.index(node.op)
@@ -142,7 +142,7 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
 
     def var_repl(id_a, id_b):
         def _mut():
-            def _repl(node):
+            def _repl(node, parent, attr):
                 if type(node) == ast.Name:
                     if node.id == id_a:
                         node.id = id_b
@@ -157,7 +157,7 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
 
     def label_repl(name_a, name_b):
         def _mut():
-            def _repl(node):
+            def _repl(node, parent, attr):
                 if type(node) == ast.Label:
                     if node.name == name_a:
                         node.name = name_b
@@ -330,169 +330,169 @@ def apply_trans(node: ast.Node, trans: Callable[[ast.Node], ast.Node]) -> ast.No
 
 
 @singledispatch
-def visit(node: ast.Node, visitor: Callable[[ast.Node], None]):
+def visit(node: ast.Node, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
     """
     Visit each node of an abstract syntax tree recursively
         Parameters:
             node (ast.Node): A (root) node of the syntax tree to visit
-            visitor (Callable[[ast.Node], None]): Callback function called for each node
+            visitor (Callable[[ast.Node, ast.Node, str], None]): Callback function called for each node
     """
-    visitor(node)
+    visitor(node, parent, attr)
 
 
 @ visit.register
-def _(node: ast.Block, visitor: Callable[[ast.Node], None]):
-    visitor(node)
+def _(node: ast.Block, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
     for s in node.stats:
         visit(s, visitor)
 
 
 @ visit.register
-def _(node: ast.Return, visitor: Callable[[ast.Node], None]):
-    visitor(node)
-    for e in node.exps:
-        visit(e, visitor)
+def _(node: ast.Return, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    for i, e in enumerate(node.exps):
+        visit(e, visitor, node, f"exps.{i}")
 
 
 @ visit.register
-def _(node: ast.Do, visitor: Callable[[ast.Node], None]):
-    visitor(node)
-    visit(node.block, visitor)
+def _(node: ast.Do, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    visit(node.block, visitor, node, "block")
 
 
 @ visit.register
-def _(node: ast.Assign, visitor: Callable[[ast.Node], None]):
-    visitor(node)
-    for t in node.targets:
-        visit(t, visitor)
-    for v in node.values:
-        visit(v, visitor)
+def _(node: ast.Assign, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    for i, t in enumerate(node.targets):
+        visit(t, visitor, node, f"targets.{i}")
+    for i, v in enumerate(node.values):
+        visit(v, visitor, node, f"values.{i}")
 
 
 @ visit.register
-def _(node: ast.While, visitor: Callable[[ast.Node], None]):
-    visitor(node)
-    visit(node.condition, visitor)
-    visit(node.block, visitor)
+def _(node: ast.While, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    visit(node.condition, visitor, node, "condition")
+    visit(node.block, visitor, node, "block")
 
 
 @ visit.register
-def _(node: ast.Repeat, visitor: Callable[[ast.Node], None]):
-    visitor(node)
-    visit(node.block, visitor)
-    visit(node.condition, visitor)
+def _(node: ast.Repeat, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    visit(node.block, visitor, node, "block")
+    visit(node.condition, visitor, node, "condition")
 
 
 @ visit.register
-def _(node: ast.ForRange, visitor: Callable[[ast.Node], None]):
-    visitor(node)
-    visit(node.var, visitor)
-    visit(node.lb, visitor)
-    visit(node.ub, visitor)
-    visit(node.step, visitor)
-    visit(node.body, visitor)
+def _(node: ast.ForRange, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    visit(node.var, visitor, node, "var")
+    visit(node.lb, visitor, node, "lb")
+    visit(node.ub, visitor, node, "ub")
+    visit(node.step, visitor, node, "step")
+    visit(node.body, visitor, node, "body")
 
 
 @ visit.register
-def _(node: ast.ForIn, visitor: Callable[[ast.Node], None]):
-    visitor(node)
-    for i in node.names:
-        visit(i, visitor)
-    for i in node.exps:
-        visit(i, visitor)
-    visit(node.body, visitor)
+def _(node: ast.ForIn, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    for i, n in enumerate(node.names):
+        visit(n, visitor, node, f"names.{i}")
+    for i, e in enumerate(node.exps):
+        visit(e, visitor, node, f"exps.{i}")
+    visit(node.body, visitor, node, "body")
 
 
 @ visit.register
-def _(node: ast.Local, visitor: Callable[[ast.Node], None]):
-    visitor(node)
-    for t in node.targets:
-        visit(t, visitor)
-    for v in node.values:
-        visit(v, visitor)
+def _(node: ast.Local, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    for i, t in enumerate(node.targets):
+        visit(t, visitor, node, f"targets.{i}")
+    for i, v in enumerate(node.values):
+        visit(v, visitor, node, f"values.{i}")
 
 
 @ visit.register
-def _(node: ast.Func, visitor: Callable[[ast.Node], None]):
-    visitor(node)
-    for a in node.args:
-        visit(a, visitor)
-    visit(node.body, visitor)
+def _(node: ast.Func, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    for i, a in enumerate(node.args):
+        visit(a, visitor, node, f"args.{i}")
+    visit(node.body, visitor, node, "body")
 
 
 @ visit.register
-def _(node: ast.Index, visitor: Callable[[ast.Node], None]):
-    visitor(node)
-    visit(node.obj, visitor)
-    visit(node.item, visitor)
+def _(node: ast.Index, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    visit(node.obj, visitor, node, "obj")
+    visit(node.item, visitor, node, "item")
 
 
 @ visit.register
-def _(node: ast.Table, visitor: Callable[[ast.Node], None]):
-    visitor(node)
-    for f in node.fields:
-        visit(f, visitor)
+def _(node: ast.Table, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    for i, f in enumerate(node.fields):
+        visit(f, visitor, node, f"fields.{i}")
 
 
 @ visit.register
-def _(node: ast.Field, visitor: Callable[[ast.Node], None]):
-    visitor(node)
-    visit(node.key, visitor)
-    visit(node.value, visitor)
+def _(node: ast.Field, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    visit(node.key, visitor, node, "key")
+    visit(node.value, visitor, node, "value")
 
 
 @ visit.register(ast.MethodCall)
-def _(node: ast.MethodCall, visitor: Callable[[ast.Node], None]):
-    visitor(node)
-    visit(node.value, visitor)
-    for a in node.args:
-        visit(a, visitor)
+def _(node: ast.MethodCall, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    visit(node.value, visitor, node, "value")
+    for i, a in enumerate(node.args):
+        visit(a, visitor, node, f"args.{i}")
 
 
 @ visit.register(ast.Call)
-def _(node: ast.Call, visitor: Callable[[ast.Node], None]):
-    visitor(node)
-    visit(node.func, visitor)
-    for a in node.args:
-        visit(a, visitor)
+def _(node: ast.Call, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    visit(node.func, visitor, node, "func")
+    for i, a in enumerate(node.args):
+        visit(a, visitor, node, f"args.{i}")
 
 
 @ visit.register
-def _(node: ast.If, visitor: Callable[[ast.Node], None]):
-    visitor(node)
-    visit(node.test, visitor)
-    visit(node.body, visitor)
-    visit(node.orelse, visitor)
+def _(node: ast.If, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    visit(node.test, visitor, node, "test")
+    visit(node.body, visitor, node, "body")
+    visit(node.orelse, visitor, node, "orelse")
 
 
 @ visit.register
-def _(node: ast.BinOp, visitor: Callable[[ast.Node], None]):
-    visitor(node)
-    visit(node.left, visitor)
-    visit(node.right, visitor)
+def _(node: ast.BinOp, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    visit(node.left, visitor, node, "left")
+    visit(node.right, visitor, node, "right")
 
 
 @ visit.register
-def _(node: ast.UnaryOp, visitor: Callable[[ast.Node], None]):
-    visitor(node)
-    visit(node.operand, visitor)
+def _(node: ast.UnaryOp, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    visit(node.operand, visitor, node, "operand")
 
 
 @ visit.register
-def _(node: ast.Alt, visitor: Callable[[ast.Node], None]):
-    visitor(node)
-    for a in node.alts:
-        visit(a, visitor)
+def _(node: ast.Alt, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    for i, a in enumerate(node.alts):
+        visit(a, visitor, node, f"alts.{i}")
 
 
 @ visit.register
-def _(node: ast.Perm, visitor: Callable[[ast.Node], None]):
-    visitor(node)
-    for s in node.stats:
-        visit(s, visitor)
+def _(node: ast.Perm, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    for i, s in enumerate(node.stats):
+        visit(s, visitor, node, f"stats.{i}")
 
 
 @ visit.register
-def _(node: ast.Hint, visitor: Callable[[ast.Node], None]):
-    visitor(node)
-    visit(node.block, visitor)
+def _(node: ast.Hint, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    visit(node.block, visitor, node, "block")
