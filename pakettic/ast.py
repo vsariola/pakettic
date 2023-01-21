@@ -234,10 +234,10 @@ class Numeral(Node):
 
     def __repr__(self):
         if self.whole == 0 and self.fractional > 0:
-            return f"{'0x.' + '%x' % self.fractional if self.fractional != 0 else ''}{'p' + str(self.exponent) if self.exponent != 0 else ''}" if self.hex \
+            return f"{'0x.' + ('%x' % self.fractional)[::-1] if self.fractional != 0 else ''}{'p' + str(self.exponent) if self.exponent != 0 else ''}" if self.hex \
                 else f"{'.' + str(self.fractional)[::-1] if self.fractional != 0 else ''}{'e' + str(self.exponent) if self.exponent != 0 else ''}"
         else:
-            return f"0x{'%x' % self.whole}{'.' + '%x' % self.fractional if self.fractional != 0 else ''}{'p' + str(self.exponent) if self.exponent != 0 else ''}" if self.hex \
+            return f"0x{'%x' % self.whole}{'.' + ('%x' % self.fractional)[::-1] if self.fractional != 0 else ''}{'p' + str(self.exponent) if self.exponent != 0 else ''}" if self.hex \
                 else f"{self.whole}{'.' + str(self.fractional)[::-1] if self.fractional != 0 else ''}{'e' + str(self.exponent) if self.exponent != 0 else ''}"
 
 
