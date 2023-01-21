@@ -335,7 +335,7 @@ def visit(node: ast.Node, visitor: Callable[[ast.Node], None]):
     Visit each node of an abstract syntax tree recursively
         Parameters:
             node (ast.Node): A (root) node of the syntax tree to visit
-            visitor (Callable[[ast.Node], Node]): Callback function called for each node
+            visitor (Callable[[ast.Node], None]): Callback function called for each node
     """
     visitor(node)
 
