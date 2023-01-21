@@ -7,6 +7,7 @@ class Node:
     @property
     def precedence(self):
         return 0
+    original: "Node" = None
 
 
 @dataclass
@@ -239,6 +240,14 @@ class Numeral(Node):
         else:
             return f"0x{'%x' % self.whole}{'.' + ('%x' % self.fractional)[::-1] if self.fractional != 0 else ''}{'p' + str(self.exponent) if self.exponent != 0 else ''}" if self.hex \
                 else f"{self.whole}{'.' + str(self.fractional)[::-1] if self.fractional != 0 else ''}{'e' + str(self.exponent) if self.exponent != 0 else ''}"
+
+    @property
+    def value(self):
+        if self.fractional == 0 and self.exponent == 0:
+            return float(self.whole)
+        else:
+            r = repr(self)
+            return float.fromhex(r) if self.hex else float(r)
 
 
 @dataclass
