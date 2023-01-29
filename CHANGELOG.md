@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Treat --![ and --!] as multiline comments, so one can have debug code
+  in unpacked intro, which is not included in the packed version
+
 ### Fixed
 
 - The operator precedence of ^ vs. unary operators was wrong

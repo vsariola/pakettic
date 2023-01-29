@@ -155,6 +155,12 @@ expression on next line if this is in the middle of an expression. `--|`
 has the lowest precedence, even lower than `^`, so put parentheses if
 you want to try more complicated expressions e.g. `(x//256)--|(x>>8)`
 
+### Debug code
+
+Pakettic treats `--![` and `--!]` as multiline comment tags, while LUA
+treats these as single line comments. Useful for including debug code in
+the unpacked intro: the code will not be included in the packed cart.
+
 ## Tips for command line arguments
 
 - Cranking up the Zopfli settings can usually save a few more bytes,

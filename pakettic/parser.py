@@ -277,7 +277,8 @@ fieldsep <<= COMMA | SEMI
 comment_intro = pp.Literal("--")
 short_comment = comment_intro + ~pp.FollowedBy(VLINE | LBRACE | RBRACE) + pp.restOfLine
 long_comment = pp.Regex(r"--\[(=*)\[(?P<str>[\s\S]*?)--\]\1\]")
-lua_comment = long_comment | short_comment
+debug_comment = pp.Regex(r"--!(=*)\[[\s\S]*?--!\1\]")
+lua_comment = debug_comment | long_comment | short_comment
 block.ignore(lua_comment)
 
 
