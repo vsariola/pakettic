@@ -173,23 +173,31 @@ explist <<= pp.Group(exp + (COMMA + exp)[0, ...], aslist=True)
 
 left_assoc = lambda t: functools.reduce(lambda x, y: ast.BinOp(x, y[0], y[1]), zip(t[0][1::2], t[0][2::2]), t[0][0])
 right_assoc = lambda t: functools.reduce(lambda x, y: ast.BinOp(y[1], y[0], x), zip(t[0][-2::-2], t[0][-3::-2]), t[0][-1])
-alt = lambda t: ast.Alt(t[0].asList())
+alt = lambda t: ast.Alt(t.asList()) if len(t) > 1 else t[0]
 
 
 def unaryAction(t):
-    return functools.reduce(lambda x, y: ast.UnaryOp(op=y, operand=x), t[0][-2::-1], t[0][-1])
+    return functools.reduce(lambda x, y: ast.UnaryOp(op=y, operand=x), t[-2::-1], t[-1])
 
 
 nil = pp.Keyword("nil").set_parse_action(lambda: ast.Nil())
 false = pp.Keyword("false").set_parse_action(lambda: ast.Boolean(False))
 true = pp.Keyword("true").set_parse_action(lambda: ast.Boolean(True))
 ellipsis = pp.Literal("...").set_parse_action(lambda: ast.Ellipsis())
+# The power operator is weird: it binds more strongly than unary to the
+# thing on its left, but less strongly than unary to its right. So, we
+# need to treat it separately
+expliteral = nil | false | true | Numeral | LiteralString | ellipsis | functiondef | prefixexp | tableconstructor | LPAR + exp + RPAR
+altexp = expliteral + (pp.Literal('--|').suppress() + expliteral)[0, ...]
+altexp.set_parse_action(alt)
+powerexp = pp.Forward()
+unaryexp = pp.oneOf('not # - ~')[0, ...] + powerexp
+unaryexp.set_parse_action(unaryAction)
+powerexp <<= altexp + (pp.Literal('^').suppress() + unaryexp)[0, 1]
+powerexp.set_parse_action(lambda t: ast.BinOp(left=t[0], op="^", right=t[1]) if len(t) > 1 else t[0])
 exp <<= pp.infixNotation(
-    nil | false | true | Numeral | LiteralString | ellipsis | functiondef | prefixexp | tableconstructor,
+    unaryexp,
     [
-        (pp.Literal('--|').suppress(), 2, pp.opAssoc.LEFT, alt),
-        ('^', 2, pp.opAssoc.RIGHT, right_assoc),
-        (pp.oneOf('not # - ~'), 1, pp.OpAssoc.RIGHT, unaryAction),
         (pp.oneOf('* / // %'), 2, pp.OpAssoc.LEFT, left_assoc),
         (pp.oneOf('+ -'), 2, pp.OpAssoc.LEFT, left_assoc),
         ('..', 2, pp.OpAssoc.LEFT, left_assoc),

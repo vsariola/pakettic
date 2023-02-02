@@ -306,8 +306,8 @@ class TestMagicComments(unittest.TestCase):
         self.assertEqual(got, expected)
 
     def test_alternative_expressions(self):
-        got = parser.parse_string('x = 1 --| 2')
-        expected = Block([Assign([Name('x')], [Alt([Numeral(1), Numeral(2)])])])
+        got = parser.parse_string('x = 1 --| 2 --| 3')
+        expected = Block([Assign([Name('x')], [Alt([Numeral(1), Numeral(2), Numeral(3)])])])
         self.assertEqual(got, expected)
 
 
@@ -418,6 +418,9 @@ class TestUnaryOperators(unittest.TestCase):
             ('-#a', UnaryOp(op='-', operand=UnaryOp(op="#", operand=Name("a")))),
             ('-1^2', UnaryOp(op='-', operand=BinOp(left=Numeral(1), op="^", right=Numeral(2)))),
             ('(-1)^2', BinOp(left=UnaryOp(op='-', operand=Numeral(1)), op="^", right=Numeral(2))),
+            ('2^-3', BinOp(left=Numeral(2), op="^", right=UnaryOp(op='-', operand=Numeral(3)))),
+            ('-2^-3', UnaryOp(op="-", operand=BinOp(left=Numeral(2), op="^", right=UnaryOp(op='-', operand=Numeral(3))))),
+            ('2^-2^2', BinOp(left=Numeral(2), op="^", right=UnaryOp(op='-', operand=BinOp(left=Numeral(2), op="^", right=Numeral(2))))),
         ]
         for a, expected in cases:
             with self.subTest(parsed=a, expected=expected):

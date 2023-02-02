@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The operator precedence of ^ vs. unary operators was STILL wrong: it
+  binds more strongly than unary to the operand on its left, but less
+  strongly than unary to the operand on its right
 - Long comments should be delimited by --[[ and ]], not --[[ and --]]
 
 ## [1.1.0] - 2023-02-01

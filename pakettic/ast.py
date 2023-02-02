@@ -195,16 +195,16 @@ class Hint(Node):
 _precedence = \
     dict.fromkeys(['--|'], 1) | \
     dict.fromkeys(['^'], 2) | \
-    dict.fromkeys(['*', '/', '//', '%'], 4) | \
-    dict.fromkeys(['+', '-'], 5) | \
-    dict.fromkeys(['..'], 6) | \
-    dict.fromkeys(['<<', '>>'], 7) | \
-    dict.fromkeys(['&'], 8) | \
-    dict.fromkeys(['~'], 9) | \
-    dict.fromkeys(['|'], 10) | \
-    dict.fromkeys(['<', '>', '<=', '>=', '~=', '=='], 11) | \
-    dict.fromkeys(['and'], 12) | \
-    dict.fromkeys(['or'], 13)
+    dict.fromkeys(['*', '/', '//', '%'], 3) | \
+    dict.fromkeys(['+', '-'], 4) | \
+    dict.fromkeys(['..'], 5) | \
+    dict.fromkeys(['<<', '>>'], 6) | \
+    dict.fromkeys(['&'], 7) | \
+    dict.fromkeys(['~'], 8) | \
+    dict.fromkeys(['|'], 9) | \
+    dict.fromkeys(['<', '>', '<=', '>=', '~=', '=='], 10) | \
+    dict.fromkeys(['and'], 11) | \
+    dict.fromkeys(['or'], 12)
 
 
 @dataclass
@@ -215,7 +215,7 @@ class UnaryOp(Node):
 
     @property
     def precedence(self):
-        return 3
+        return 2
 
 
 @dataclass(init=False)
