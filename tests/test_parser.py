@@ -327,6 +327,8 @@ class TestComments(unittest.TestCase):
         cases = [
             ('--', []),
             ('goto --[[goto foo\ngoto bar\n--]]\ntest_label', [Goto('test_label')]),
+            ('goto --[[goto foo\ngoto bar\n]]\ntest_label', [Goto('test_label')]),
+            ('goto --[==[goto foo\ngoto bar\n]==]\ntest_label', [Goto('test_label')]),
             ('goto --![goto foo\ngoto bar\n--!]\ntest_label', [Goto('test_label')]),
             ('goto --!==[goto foo\ngoto bar\n--!==]\ntest_label', [Goto('test_label')]),
             ('goto --[=====[goto foo\ngoto bar\n--]=====]\ntest_label', [Goto('test_label')]),
