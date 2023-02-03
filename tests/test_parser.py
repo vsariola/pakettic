@@ -343,6 +343,7 @@ class TestComments(unittest.TestCase):
     def test_invalid_comments(self):
         invalid_comments = [
             'goto --[==[goto foo\ngoto bar\n--]=======]\ntest_label',
+            'goto --![goto foo\ngoto bar\n--!==]\ntest_label',
             '-',
             '//'
         ]
@@ -384,34 +385,35 @@ class TestBinaryOperators(unittest.TestCase):
         ])
         self.assertEqual(got, expected)
 
-    def test_multiadd(self):
-        got = parser.parse_string('x = 1 + 2 + 3')
-        expected = Block([
-            Assign(
-                [Name('x')],
-                [BinOp(left=BinOp(left=Numeral(1), op="+", right=Numeral(2)), op='+', right=Numeral(3))]
-            )
-        ])
-        self.assertEqual(got, expected)
-
     def test_precedence(self):
-        got = parser.parse_string('x = 6+1*2')
-        expected = Block([
-            Assign(
-                [Name('x')],
-                [BinOp(left=Numeral(6), op="+", right=BinOp(left=Numeral(1), op="*", right=Numeral(2)))]
-            )
-        ])
-        self.assertEqual(got, expected)
+        cases = [
+            ('1+2+3', BinOp(left=BinOp(left=Numeral(1), op="+", right=Numeral(2)), op='+', right=Numeral(3))),
+            ('6+1*2', BinOp(left=Numeral(6), op="+", right=BinOp(left=Numeral(1), op="*", right=Numeral(2)))),
+            ('(6+1)*2', BinOp(BinOp(Numeral(6), "+", Numeral(1)), "*", Numeral(2))),
+            ('1*2+3', BinOp(BinOp(Numeral(1), "*", Numeral(2)), "+", Numeral(3))),
+            ('3>1 .. 2', BinOp(Numeral(3), ">", BinOp(Numeral(1), "..", Numeral(2)),)),
+            ('3 or 1 and 2', BinOp(Numeral(3), "or", BinOp(Numeral(1), "and", Numeral(2)))),
+            ('2^3^4', BinOp(Numeral(2), "^", BinOp(Numeral(3), "^", Numeral(4)))),
+            ('(2^3)^4', BinOp(BinOp(Numeral(2), "^", Numeral(3)), "^", Numeral(4))),
+        ]
+        for a, expected in cases:
+            with self.subTest(parsed=a, expected=expected):
+                got = parser.exp.parse_string(a, parse_all=True)[0]
+                self.assertEqual(got, expected)
 
 
 class TestUnaryOperators(unittest.TestCase):
-    def test_minus(self):
-        got = parser.parse_string('x = -1')
-        expected = Block([
-            Assign([Name('x')], [UnaryOp(op="-", operand=Numeral(1))])
-        ])
-        self.assertEqual(got, expected)
+    def test_unaryops(self):
+        cases = [
+            ('-1', UnaryOp("-", Numeral(1))),
+            ('#a', UnaryOp("#", Name("a"))),
+            ('not false', UnaryOp("not", Boolean(False))),
+            ('~5', UnaryOp("~", Numeral(5))),
+        ]
+        for a, expected in cases:
+            with self.subTest(parsed=a, expected=expected):
+                got = parser.exp.parse_string(a, parse_all=True)[0]
+                self.assertEqual(got, expected)
 
     def test_association(self):
         cases = [
@@ -426,11 +428,6 @@ class TestUnaryOperators(unittest.TestCase):
             with self.subTest(parsed=a, expected=expected):
                 got = parser.exp.parse_string(a, parse_all=True)[0]
                 self.assertEqual(got, expected)
-
-    def test_multiadd(self):
-        got = parser.parse_string('x = 1 + 2 + 3')
-        expected = Block([Assign([Name('x')], [BinOp(BinOp(Numeral(1), "+", Numeral(2)), '+', Numeral(3))])])
-        self.assertEqual(got, expected)
 
 
 class TestLocals(unittest.TestCase):
