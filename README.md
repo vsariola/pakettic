@@ -98,6 +98,7 @@ include:
     with [magic comments](#magic-comments)
   - alternative expressions: alternatives are marked with
     [magic comments](#magic-comments)
+  - folding constant expressions
 
 Internally, pakettic uses [zopfli](https://github.com/google/zopfli) for
 the compression.

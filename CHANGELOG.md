@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Try folding constants, to see if it compresses better
+
 ### Fixed
 
 - Hex numbers with fractional digits had the fractional digits printed in reverse
