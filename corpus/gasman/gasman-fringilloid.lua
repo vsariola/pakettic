@@ -1,0 +1,1 @@
+function TIC()u=20*math.sin(time()/536)n=20*math.sin(time()/368)for t=0,240 do for c=0,240 do pix(t,c,(math.sqrt((t-120+u)^2+(c-68+n)^2)//8~math.sqrt((t-120-u)^2+(c-68-n)^2)//8)*4)end end end

@@ -1,0 +1,1 @@
+TIC=load'cls()t=time()/180K={70,50,0}s=math.sin for z=0,2e3 do a=z/250-3P=((z//3)%24)/3+2i=z%3+1M=5*i^1.6 circ(120+(10*(i+i//3*3)*c(a)*c(P)+K[i])*c(t)+M*s(a)*c(P)*s(t),M*s(P)+38+10*s(t)+i//3*30,2,3+i/2)circ(120-32*P/4*a,80+P*4+8*s(a+t),6,9)end'c=math.cos

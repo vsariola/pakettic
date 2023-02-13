@@ -1,0 +1,1 @@
+TIC=load"for i=0,4e4 do poke(16320+i%48,120+120*math.cos(i*6+i%3))pix(i%240,i//240,((i%240-120)*math.cos(time()/2e4)+i//240*math.sin(time()/2e4))/2*(i//240*math.cos(time()/2e4)-(i%240-120)*math.sin(time()/2e4))/2)end"
