@@ -7,7 +7,12 @@ class Node:
     @property
     def precedence(self):
         return 0
-    original: "Node" = None
+    original = None
+    # TODO: If we typehint this as "Node", get_type_hints(ast.Ellipsis()), get_type_hints(ast.Break()) and
+    # get_type_hints(ast.Nil()) crash in optimize.apply_trans, because it uses type hints to figure out
+    # which children should the transformation be applied progressively. At the moment, it's not an issue
+    # if the apply_trans does not get applied to "original" attributes, as it is currently used only to
+    # transform loads to funcs, and at that point, there should be no originals.
 
 
 @dataclass
