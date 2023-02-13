@@ -19,7 +19,7 @@ _EVALUABLE_OPS = {
     "-": lambda l, r: l - r,
     "*": lambda l, r: l * r,
     "/": lambda l, r: l / r,
-    "//": lambda l, r: int(l / r),
+    "//": lambda l, r: l // r,
     "%": lambda l, r: l % r,
     "^": lambda l, r: l ** r,
     "&": lambda l, r: int(l) & int(r) if int(l)==l and int(r)==r else None,
