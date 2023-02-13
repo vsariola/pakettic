@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Hex numbers with fractional digits had the fractional digits printed in reverse
+- Hex numbers with an exponent raised an error when printed
+
 ## [1.1.1] - 2023-02-03
 
 ### Fixed

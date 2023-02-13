@@ -206,6 +206,8 @@ Coders!
 
 [wojciech-graj](https://github.com/wojciech-graj)
 
+[koorogi](https://github.com/koorogi)
+
 ## License
 
 [MIT](https://choosealicense.com/licenses/mit/)
