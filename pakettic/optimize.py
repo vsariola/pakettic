@@ -223,7 +223,7 @@ def anneal(state: Any, cost_func: Callable[[Any, int], int], steps: int, start_t
     Perform simulated annealing optimization, using exponential temperature schedule.
     See https://en.wikipedia.org/wiki/Simulated_annealing
         Parameters:
-            state: Starting state for the
+            state: Starting state for the optimization
             cost_func (Callable[[Any, int], int]): Callback function, with the first parameter the state and second parameter the cost of best solution so far
             steps (int): how many steps the optimization algorithms takes
             start_temp (float): starting temperature for the optimization
@@ -259,7 +259,7 @@ def lahc(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_leng
     Optimize a function using Late Acceptance Hill Climbing
     See https://arxiv.org/pdf/1806.09328.pdf
         Parameters:
-            state: Starting state for the
+            state: Starting state for the optimization
             cost_func (Callable[[Any, int], int]): Callback function, with the first parameter the state and second parameter the cost of best solution so far
             steps (int): how many steps the optimization algorithms takes
             list_length (int): length of the history in the algorithm
@@ -297,7 +297,7 @@ def dlas(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_leng
     Optimize a function using Diversified Late Acceptance Search
     See https://arxiv.org/pdf/1806.09328.pdf
         Parameters:
-            state: Starting state for the
+            state: Starting state for the optimization
             cost_func (Callable[[Any, int], int]): Callback function, with the first parameter the state and second parameter the cost of best solution so far
             steps (int): how many steps the optimization algorithms takes
             list_length (int): length of the history in the algorithm
