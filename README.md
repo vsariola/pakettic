@@ -103,9 +103,19 @@ include:
 Internally, pakettic uses [zopfli](https://github.com/google/zopfli) for
 the compression.
 
-`load'...'` is parsed as `function()...end` so you can easily recompress
-already compressed carts. Conversely, `function()...end` is replaced
-with `load'...'` during compression.
+`load'<code>'` is parsed as `function(...)<code>end` so you can easily
+recompress already compressed carts. Conversely, `function()<code>end`
+or `function(...)<code>end` is replaced with `load'<code>'` during
+compression.
+
+However, pakettic does not convert functions with parameters. In
+particular, pakettic does not automatically convert
+`function SCN(x)<code>end` into `SCN=load'x=...<code>'`, because they
+are not semantically identical: in the load version, `x` is now global
+and thus could trash a global variable, unintentionally breaking the
+cart. To make `SCN` compress nicely, you have to write it as
+`function SCN(...)x=...<code>end`, taking responsibility for `x` not
+overwriting anything important.
 
 Unnecessary parentheses are removed from expressions so you do not have
 to worry about those.
@@ -196,9 +206,9 @@ the unpacked intro: the code will not be included in the packed cart.
 - The parser can crash with large carts. Carts in the size coding range
   (few thousand characters) do not seem to cause problems, but crashes
   have been observed parsing carts with tens of thousands of code
-  characters. This may related to how the pyparsing grammar is defined,
-  which could result in highly recursive parsing and eventually stack
-  overflows.
+  characters. This may be related to how the pyparsing grammar is
+  defined, which could result in highly recursive parsing and eventually
+  stack overflows.
 
 ## Credits
 
