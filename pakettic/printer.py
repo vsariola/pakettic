@@ -11,7 +11,9 @@ def format(node: ast.Node, pretty: bool = False) -> str:
     return Formatter(pretty=pretty).format(node)
 
 
-_hexy = re.compile('[0-9a-fxA-FX]').search
+_hexy = re.compile('[0-9a-fxA-FXpP]').search
+_alphaunder = re.compile('[_a-zA-Z]').search
+_alphanumunder = re.compile('[_a-zA-Z0-9]').search
 _single_quote_translation = str.maketrans({"\n": r"\n",
                                            "\t": r"\t",
                                            "\\": r"\\",
@@ -48,11 +50,21 @@ class Formatter:
     def __addspaces(self, tokens: typing.Iterable[str]):
         prevtoken = ' '
         for token in tokens:
-            if len(token) == 0:
-                continue
-            if prevtoken[-1].isalpha() and (token[0].isalpha() or token[0].isdigit()) or (prevtoken[-1].isdigit() and bool(_hexy(token[0]))):
-                yield ' '
-            yield token
+            if type(token) is str:
+                if len(token) == 0:
+                    continue
+                if type(prevtoken) is str and bool(_alphaunder(prevtoken[0])) and bool(_alphanumunder(token[0])):
+                    # the previous token was word, and the next continues with a character that might be confused with it
+                    yield ' '
+                elif type(prevtoken) is ast.Numeral and bool(_hexy(token[0])):
+                    yield ' '  # the previous token was numeral and the next starts with something that be confused with a hex
+                yield token
+            elif type(token) is ast.Numeral:
+                strnumeral = str(token)
+                if strnumeral[0] != '.' and type(prevtoken) is str and bool(_alphaunder(prevtoken[0])):
+                    # the previous token was word, and the next continues with a character that might be confused with it
+                    yield ' '
+                yield strnumeral
             prevtoken = token
 
     @ __traverse.register
@@ -406,10 +418,12 @@ class Formatter:
 
     @ __traverse.register
     def _(self, node: ast.Numeral):
+        # We treat numerals a bit differently, to see if they need spaces before, so
+        # we yield them as Numerals, not strs
         if self.no_hex and node.hex and node.fractional == 0 and node.exponent == 0:
-            yield str(node.whole)
+            yield ast.Numeral(node.whole)
         else:
-            yield str(node)
+            yield node
 
     @ __traverse.register
     def _(self, node: ast.Hint):
