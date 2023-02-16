@@ -56,6 +56,8 @@ class TestPrinter(unittest.TestCase):
             'if true then else break end',
             'if true then elseif true then else break end',
             'debug()',
+            'x=v1 y=v2',
+            'a=0x5 p=5'
         ]
         for a in cases:
             with self.subTest(code=a):
