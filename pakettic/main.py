@@ -166,6 +166,7 @@ def main():
             code = cart[c].decode("ascii")
             root = parser.parse_string(code)
             root = optimize.loads_to_funcs(root)
+            root = optimize.minify(root)
             root = ast.Hint(root)
 
             def _cost_func(root, best_cost):

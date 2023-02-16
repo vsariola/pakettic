@@ -9,6 +9,16 @@ import tqdm
 from pakettic import ast, parser
 from dataclasses import replace
 
+
+def _toBase26(num):
+    s = ""
+    while (num > 0):
+        s += (chr(ord('z')-(num-1) % 26))
+        num -= 1
+        num //= 26
+    return s
+
+
 _FLIPPABLE_OPS = [">", "<", ">=", "<=", "~=", "=="]
 _FLIPPED_OPS = ["<", ">", "<=", ">=", "~=", "=="]
 _REORDERABLE_OPS = ["+", "-", "*", "/", "&", "|", "~"]
@@ -58,6 +68,39 @@ def loads_to_funcs(root: ast.Node) -> ast.Node:
         else:
             return node
     return apply_trans(root, _trans)
+
+
+def minify(root: ast.Node) -> ast.Node:
+    """
+    Perform initial minification of the variable names
+        Parameters:
+            root (ast.Node): Root of the abstract syntax tree            
+        Returns:
+            new_root (ast.Node): Root of the new, mutated abstract syntax tree
+    """
+    new_root = copy.deepcopy(root)
+    changed_names = dict()
+    changed_labels = dict()
+
+    def _tryget(d: dict, key: str):
+        if key in _RESERVED:
+            return key
+        new = d.get(key, None)
+        if new is None:
+            new = _toBase26(len(d)+1)
+        d[key] = new
+        return new
+
+    def _minify(node: ast.Node, parent: ast.Node, attr: str):
+        if type(node) == ast.Name:
+            node.id = _tryget(changed_names, node.id)
+        elif type(node) == ast.Label:
+            node.name = _tryget(changed_labels, node.name)
+        elif type(node) == ast.Goto:
+            node.target = _tryget(changed_labels, node.target)
+
+    visit(new_root, _minify)
+    return new_root
 
 
 def mutate(root: ast.Node, rand: random.Random) -> ast.Node:

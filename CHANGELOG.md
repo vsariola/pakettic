@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Perform initial variable minification before starting optimization
 - Try folding constants, to see if it compresses better
 
 ### Fixed
