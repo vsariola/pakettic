@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Spaces between tokens were not always printed even when needed
 - Hex numbers with fractional digits had the fractional digits printed in reverse
 - Hex numbers with an exponent raised an error when printed
 
