@@ -1,7 +1,7 @@
 
 
 from dataclasses import dataclass
-from functools import singledispatchmethod
+from functools import singledispatch
 import typing
 import re
 from pakettic import ast
@@ -32,20 +32,15 @@ class Formatter:
     no_hex: bool = False
 
     def format(self, node: ast.Node) -> str:
-        tokens = self.__traverse(node)
+        tokens = _traverse(node, self)
         return ''.join(self.__addspaces(tokens))
 
     @property
     def __quote(self):
         return '"' if self.double_quotes else "'"
 
-    def __escape(self, s: str):
+    def escape(self, s: str):
         return f"{self.__quote}{s.translate(_double_quote_translation if self.double_quotes else _single_quote_translation)}{self.__quote}"
-
-    @ singledispatchmethod
-    def __traverse(self, node: ast.Node):
-        # raise TypeError("_print encounted unknown ast.node")
-        yield str(node)
 
     def __addspaces(self, tokens: typing.Iterable[str]):
         prevtoken = ' '
@@ -67,370 +62,408 @@ class Formatter:
                 yield strnumeral
             prevtoken = token
 
-    @ __traverse.register
-    def _(self, node: ast.Block):
-        for n in node.stats:
-            if self.pretty:
-                yield '  ' * self.indent
-            yield from self.__traverse(n)
-            if self.pretty:
-                yield '\n'
 
-    @ __traverse.register
-    def _(self, node: ast.Return):
-        yield 'return'
-        for i, v in enumerate(node.exps):
-            if i > 0:
-                yield ','
-            yield from self.__traverse(v)
+# This used to be a singledispatchmethod of Formatter, but for some reason, @singledispatchmethod are far slower than
+# @singledispatch
+@ singledispatch
+def _traverse(node: ast.Node, fmt: Formatter):
+    # raise TypeError("_print encounted unknown ast.node")
+    yield str(node)
 
-    @ __traverse.register
-    def _(self, node: ast.Perm):
-        if self.pretty:
-            if node.allow_reorder:
-                yield '--{'
-            else:
-                yield '--{!'
+
+@ _traverse.register
+def _(node: ast.Block, fmt: Formatter):
+    for n in node.stats:
+        if fmt.pretty:
+            yield '  ' * fmt.indent
+        yield from _traverse(n, fmt)
+        if fmt.pretty:
             yield '\n'
-            yield '  ' * self.indent
-        for i, n in enumerate(node.stats):
-            if self.pretty and i > 0:
-                yield '  ' * self.indent
-            yield from self.__traverse(n)
-            if self.pretty and i < len(node.stats) - 1:
-                yield '\n'
-        if self.pretty:
-            yield '\n'
-            yield '  ' * self.indent
-            yield '--}'
 
-    @ __traverse.register
-    def _(self, node: ast.Do):
-        yield 'do'
-        if self.pretty:
-            yield '\n'
-        self.indent += 1
-        yield from self.__traverse(node.block)
-        self.indent -= 1
-        if self.pretty:
-            yield '  ' * self.indent
-        yield 'end'
 
-    @ __traverse.register
-    def _(self, node: ast.Assign):
-        for i, v in enumerate(node.targets):
-            if i > 0:
-                yield ','
-            yield from self.__traverse(v)
-        yield '='
-        for i, v in enumerate(node.values):
-            if i > 0:
-                yield ','
-            yield from self.__traverse(v)
-
-    @ __traverse.register
-    def _(self, node: ast.Label):
-        yield '::'
-        yield node.name
-        yield '::'
-
-    @ __traverse.register
-    def _(self, node: ast.Break):
-        yield 'break'
-
-    @ __traverse.register
-    def _(self, node: ast.LiteralString):
-        yield self.__escape(node.value)
-
-    @ __traverse.register
-    def _(self, node: ast.Goto):
-        yield 'goto'
-        yield node.target
-
-    @ __traverse.register
-    def _(self, node: ast.Boolean):
-        yield 'true' if node.value else 'false'
-
-    @ __traverse.register
-    def _(self, node: ast.Ellipsis):
-        yield '...'
-
-    @ __traverse.register
-    def _(self, node: ast.Nil):
-        yield 'nil'
-
-    @ __traverse.register
-    def _(self, node: ast.While):
-        yield 'while'
-        yield from self.__traverse(node.condition)
-        yield 'do'
-        if self.pretty:
-            yield '\n'
-        self.indent += 1
-        yield from self.__traverse(node.block)
-        self.indent -= 1
-        if self.pretty:
-            yield '  ' * self.indent
-        yield 'end'
-
-    @ __traverse.register
-    def _(self, node: ast.Repeat):
-        yield 'repeat'
-        if self.pretty:
-            yield '\n'
-        self.indent += 1
-        yield from self.__traverse(node.block)
-        self.indent -= 1
-        yield 'until'
-        yield from self.__traverse(node.condition)
-
-    @ __traverse.register
-    def _(self, node: ast.ForRange):
-        yield 'for'
-        yield from self.__traverse(node.var)
-        yield '='
-        yield from self.__traverse(node.lb)
-        yield ','
-        yield from self.__traverse(node.ub)
-        if node.step is not None:
+@ _traverse.register
+def _(node: ast.Return, fmt: Formatter):
+    yield 'return'
+    for i, v in enumerate(node.exps):
+        if i > 0:
             yield ','
-            yield from self.__traverse(node.step)
-        yield 'do'
-        if self.pretty:
+        yield from _traverse(v, fmt)
+
+
+@ _traverse.register
+def _(node: ast.Perm, fmt: Formatter):
+    if fmt.pretty:
+        if node.allow_reorder:
+            yield '--{'
+        else:
+            yield '--{!'
+        yield '\n'
+        yield '  ' * fmt.indent
+    for i, n in enumerate(node.stats):
+        if fmt.pretty and i > 0:
+            yield '  ' * fmt.indent
+        yield from _traverse(n, fmt)
+        if fmt.pretty and i < len(node.stats) - 1:
             yield '\n'
-        self.indent += 1
-        yield from self.__traverse(node.body)
-        self.indent -= 1
-        if self.pretty:
-            yield '  ' * self.indent
-        yield 'end'
+    if fmt.pretty:
+        yield '\n'
+        yield '  ' * fmt.indent
+        yield '--}'
 
-    @ __traverse.register
-    def _(self, node: ast.ForIn):
-        yield 'for'
-        for i, v in enumerate(node.names):
-            if i > 0:
-                yield ','
-            yield from self.__traverse(v)
-        yield 'in'
-        for i, v in enumerate(node.exps):
-            if i > 0:
-                yield ','
-            yield from self.__traverse(v)
-        yield 'do'
-        if self.pretty:
-            yield '\n'
-        self.indent += 1
-        yield from self.__traverse(node.body)
-        self.indent -= 1
-        if self.pretty:
-            yield '  ' * self.indent
-        yield 'end'
 
-    @ __traverse.register
-    def _(self, node: ast.Local):
-        yield 'local'
-        for i, v in enumerate(node.targets):
-            if i > 0:
-                yield ','
-            yield from self.__traverse(v)
-        yield '='
-        for i, v in enumerate(node.values):
-            if i > 0:
-                yield ','
-            yield from self.__traverse(v)
+@ _traverse.register
+def _(node: ast.Do, fmt: Formatter):
+    yield 'do'
+    if fmt.pretty:
+        yield '\n'
+    fmt.indent += 1
+    yield from _traverse(node.block, fmt)
+    fmt.indent -= 1
+    if fmt.pretty:
+        yield '  ' * fmt.indent
+    yield 'end'
 
-    @ __traverse.register
-    def _(self, node: ast.Func):
-        if (len(node.args) == 0 or (len(node.args) == 1 and type(node.args[0]) == ast.Ellipsis)) and not self.pretty and node.oneline:
-            self.indent += 1
-            fmt = Formatter(self.indent + 1, double_quotes=not self.double_quotes, pretty=False)
-            s = fmt.format(node.body)
-            yield 'load'
-            yield self.__escape(s)
-            self.indent -= 1
-        else:
-            yield 'function'
-            yield '('
-            for i, v in enumerate(node.args):
-                if i > 0:
-                    yield ','
-                yield from self.__traverse(v)
-            yield ')'
-            if self.pretty:
-                yield '\n'
-            self.indent += 1
-            yield from self.__traverse(node.body)
-            self.indent -= 1
-            if self.pretty:
-                yield '  ' * self.indent
-            yield 'end'
 
-    @ __traverse.register
-    def _(self, node: ast.Index):
-        require_parentheses = type(node.obj) is not ast.Name and \
-            type(node.obj) is not ast.Index and type(node.obj) is not ast.MethodCall
-        if require_parentheses:
-            yield '('
-        yield from self.__traverse(node.obj)
-        if require_parentheses:
-            yield ')'
-        if type(node.item) is ast.LiteralString:
-            yield '.'
-            yield node.item.value
-        else:
-            yield '['
-            yield from self.__traverse(node.item)
-            yield ']'
+@ _traverse.register
+def _(node: ast.Assign, fmt: Formatter):
+    for i, v in enumerate(node.targets):
+        if i > 0:
+            yield ','
+        yield from _traverse(v, fmt)
+    yield '='
+    for i, v in enumerate(node.values):
+        if i > 0:
+            yield ','
+        yield from _traverse(v, fmt)
 
-    @ __traverse.register
-    def _(self, node: ast.Table):
-        yield '{'
-        for i, f in enumerate(node.fields):
-            if i > 0:
-                yield ','
-            yield from self.__traverse(f)
-        yield '}'
 
-    @ __traverse.register
-    def _(self, node: ast.Field):
-        if node.key is not None:
-            if type(node.key) is ast.LiteralString:
-                yield node.key.value
-                yield '='
-            else:
-                yield '['
-                yield from self.__traverse(node.key)
-                yield ']'
-                yield '='
-        yield from self.__traverse(node.value)
+@ _traverse.register
+def _(node: ast.Label, fmt: Formatter):
+    yield '::'
+    yield node.name
+    yield '::'
 
-    @ __traverse.register
-    def _(self, node: ast.Call):
-        yield from self.__traverse(node.func)
-        if len(node.args) == 1 and (type(node.args[0]) is ast.Table or type(node.args[0]) is ast.LiteralString):
-            yield from self.__traverse(node.args[0])
-        else:
-            yield '('
-            for i, v in enumerate(node.args):
-                if i > 0:
-                    yield ','
-                yield from self.__traverse(v)
-            yield ')'
 
-    @ __traverse.register
-    def _(self, node: ast.MethodCall):
-        yield from self.__traverse(node.value)
-        yield ':'
-        yield from self.__traverse(node.method)
+@ _traverse.register
+def _(node: ast.Break, fmt: Formatter):
+    yield 'break'
+
+
+@ _traverse.register
+def _(node: ast.LiteralString, fmt: Formatter):
+    yield fmt.escape(node.value)
+
+
+@ _traverse.register
+def _(node: ast.Goto, fmt: Formatter):
+    yield 'goto'
+    yield node.target
+
+
+@ _traverse.register
+def _(node: ast.Boolean, fmt: Formatter):
+    yield 'true' if node.value else 'false'
+
+
+@ _traverse.register
+def _(node: ast.Ellipsis, fmt: Formatter):
+    yield '...'
+
+
+@ _traverse.register
+def _(node: ast.Nil, fmt: Formatter):
+    yield 'nil'
+
+
+@ _traverse.register
+def _(node: ast.While, fmt: Formatter):
+    yield 'while'
+    yield from _traverse(node.condition, fmt)
+    yield 'do'
+    if fmt.pretty:
+        yield '\n'
+    fmt.indent += 1
+    yield from _traverse(node.block, fmt)
+    fmt.indent -= 1
+    if fmt.pretty:
+        yield '  ' * fmt.indent
+    yield 'end'
+
+
+@ _traverse.register
+def _(node: ast.Repeat, fmt: Formatter):
+    yield 'repeat'
+    if fmt.pretty:
+        yield '\n'
+    fmt.indent += 1
+    yield from _traverse(node.block, fmt)
+    fmt.indent -= 1
+    yield 'until'
+    yield from _traverse(node.condition, fmt)
+
+
+@ _traverse.register
+def _(node: ast.ForRange, fmt: Formatter):
+    yield 'for'
+    yield from _traverse(node.var, fmt)
+    yield '='
+    yield from _traverse(node.lb, fmt)
+    yield ','
+    yield from _traverse(node.ub, fmt)
+    if node.step is not None:
+        yield ','
+        yield from _traverse(node.step, fmt)
+    yield 'do'
+    if fmt.pretty:
+        yield '\n'
+    fmt.indent += 1
+    yield from _traverse(node.body, fmt)
+    fmt.indent -= 1
+    if fmt.pretty:
+        yield '  ' * fmt.indent
+    yield 'end'
+
+
+@ _traverse.register
+def _(node: ast.ForIn, fmt: Formatter):
+    yield 'for'
+    for i, v in enumerate(node.names):
+        if i > 0:
+            yield ','
+        yield from _traverse(v, fmt)
+    yield 'in'
+    for i, v in enumerate(node.exps):
+        if i > 0:
+            yield ','
+        yield from _traverse(v, fmt)
+    yield 'do'
+    if fmt.pretty:
+        yield '\n'
+    fmt.indent += 1
+    yield from _traverse(node.body, fmt)
+    fmt.indent -= 1
+    if fmt.pretty:
+        yield '  ' * fmt.indent
+    yield 'end'
+
+
+@ _traverse.register
+def _(node: ast.Local, fmt: Formatter):
+    yield 'local'
+    for i, v in enumerate(node.targets):
+        if i > 0:
+            yield ','
+        yield from _traverse(v, fmt)
+    yield '='
+    for i, v in enumerate(node.values):
+        if i > 0:
+            yield ','
+        yield from _traverse(v, fmt)
+
+
+@ _traverse.register
+def _(node: ast.Func, fmt: Formatter):
+    if (len(node.args) == 0 or (len(node.args) == 1 and type(node.args[0]) == ast.Ellipsis)) and not fmt.pretty and node.oneline:
+        fmt.indent += 1
+        fmt2 = Formatter(fmt.indent + 1, double_quotes=not fmt.double_quotes, pretty=False)
+        s = fmt2.format(node.body)
+        yield 'load'
+        yield fmt.escape(s)
+        fmt.indent -= 1
+    else:
+        yield 'function'
         yield '('
         for i, v in enumerate(node.args):
             if i > 0:
                 yield ','
-            yield from self.__traverse(v)
+            yield from _traverse(v, fmt)
         yield ')'
-
-    @ __traverse.register
-    def _(self, node: ast.If):
-        yield 'if'
-        yield from self.__traverse(node.test)
-        yield 'then'
-        self.indent += 1
-        if self.pretty:
+        if fmt.pretty:
             yield '\n'
-        yield from self.__traverse(node.body)
-        self.indent -= 1
-        while node.orelse is not None and len(node.orelse.stats) == 1 and type(node.orelse.stats[0]) == ast.If:
-            node = node.orelse.stats[0]
-            if self.pretty:
-                yield '  ' * self.indent
-            yield 'elseif'
-            yield from self.__traverse(node.test)
-            yield 'then'
-            self.indent += 1
-            if self.pretty:
-                yield '\n'
-            yield from self.__traverse(node.body)
-            self.indent -= 1
-        if node.orelse is not None:
-            if self.pretty:
-                yield '  ' * self.indent
-            yield 'else'
-            if self.pretty:
-                yield '\n'
-            self.indent += 1
-            yield from self.__traverse(node.orelse)
-            self.indent -= 1
-        if self.pretty:
-            yield '  ' * self.indent
+        fmt.indent += 1
+        yield from _traverse(node.body, fmt)
+        fmt.indent -= 1
+        if fmt.pretty:
+            yield '  ' * fmt.indent
         yield 'end'
 
-    @ __traverse.register
-    def _(self, node: ast.Name):
-        yield node.id
 
-    @ __traverse.register
-    def _(self, node: ast.BinOp):
-        if node.op == '^':
-            if node.left.precedence >= node.precedence:
-                yield '('
-            yield from self.__traverse(node.left)
-            if node.left.precedence >= node.precedence:
-                yield ')'
-            yield node.op
-            if node.right.precedence > node.precedence:
-                yield '('
-            yield from self.__traverse(node.right)
-            if node.right.precedence > node.precedence:
-                yield ')'
+@ _traverse.register
+def _(node: ast.Index, fmt: Formatter):
+    require_parentheses = type(node.obj) is not ast.Name and \
+        type(node.obj) is not ast.Index and type(node.obj) is not ast.MethodCall
+    if require_parentheses:
+        yield '('
+    yield from _traverse(node.obj, fmt)
+    if require_parentheses:
+        yield ')'
+    if type(node.item) is ast.LiteralString:
+        yield '.'
+        yield node.item.value
+    else:
+        yield '['
+        yield from _traverse(node.item, fmt)
+        yield ']'
+
+
+@ _traverse.register
+def _(node: ast.Table, fmt: Formatter):
+    yield '{'
+    for i, f in enumerate(node.fields):
+        if i > 0:
+            yield ','
+        yield from _traverse(f, fmt)
+    yield '}'
+
+
+@ _traverse.register
+def _(node: ast.Field, fmt: Formatter):
+    if node.key is not None:
+        if type(node.key) is ast.LiteralString:
+            yield node.key.value
+            yield '='
         else:
-            if node.left.precedence > node.precedence:
-                yield '('
-            yield from self.__traverse(node.left)
-            if node.left.precedence > node.precedence:
-                yield ')'
-            yield node.op
-            if node.right.precedence >= node.precedence:
-                yield '('
-            yield from self.__traverse(node.right)
-            if node.right.precedence >= node.precedence:
-                yield ')'
+            yield '['
+            yield from _traverse(node.key, fmt)
+            yield ']'
+            yield '='
+    yield from _traverse(node.value, fmt)
 
-    @ __traverse.register
-    def _(self, node: ast.UnaryOp):
-        yield node.op
-        if node.operand.precedence > node.precedence:
+
+@ _traverse.register
+def _(node: ast.Call, fmt: Formatter):
+    yield from _traverse(node.func, fmt)
+    if len(node.args) == 1 and (type(node.args[0]) is ast.Table or type(node.args[0]) is ast.LiteralString):
+        yield from _traverse(fmt, node.args[0])
+    else:
+        yield '('
+        for i, v in enumerate(node.args):
+            if i > 0:
+                yield ','
+            yield from _traverse(v, fmt)
+        yield ')'
+
+
+@ _traverse.register
+def _(node: ast.MethodCall, fmt: Formatter):
+    yield from _traverse(node.value, fmt)
+    yield ':'
+    yield from _traverse(node.method, fmt)
+    yield '('
+    for i, v in enumerate(node.args):
+        if i > 0:
+            yield ','
+        yield from _traverse(v, fmt)
+    yield ')'
+
+
+@ _traverse.register
+def _(node: ast.If, fmt: Formatter):
+    yield 'if'
+    yield from _traverse(node.test, fmt)
+    yield 'then'
+    fmt.indent += 1
+    if fmt.pretty:
+        yield '\n'
+    yield from _traverse(node.body, fmt)
+    fmt.indent -= 1
+    while node.orelse is not None and len(node.orelse.stats) == 1 and type(node.orelse.stats[0]) == ast.If:
+        node = node.orelse.stats[0]
+        if fmt.pretty:
+            yield '  ' * fmt.indent
+        yield 'elseif'
+        yield from _traverse(node.test, fmt)
+        yield 'then'
+        fmt.indent += 1
+        if fmt.pretty:
+            yield '\n'
+        yield from _traverse(node.body, fmt)
+        fmt.indent -= 1
+    if node.orelse is not None:
+        if fmt.pretty:
+            yield '  ' * fmt.indent
+        yield 'else'
+        if fmt.pretty:
+            yield '\n'
+        fmt.indent += 1
+        yield from _traverse(node.orelse, fmt)
+        fmt.indent -= 1
+    if fmt.pretty:
+        yield '  ' * fmt.indent
+    yield 'end'
+
+
+@ _traverse.register
+def _(node: ast.Name, fmt: Formatter):
+    yield node.id
+
+
+@ _traverse.register
+def _(node: ast.BinOp, fmt: Formatter):
+    if node.op == '^':
+        if node.left.precedence >= node.precedence:
             yield '('
-        yield from self.__traverse(node.operand)
-        if node.operand.precedence > node.precedence:
+        yield from _traverse(node.left, fmt)
+        if node.left.precedence >= node.precedence:
+            yield ')'
+        yield node.op
+        if node.right.precedence > node.precedence:
+            yield '('
+        yield from _traverse(node.right, fmt)
+        if node.right.precedence > node.precedence:
+            yield ')'
+    else:
+        if node.left.precedence > node.precedence:
+            yield '('
+        yield from _traverse(node.left, fmt)
+        if node.left.precedence > node.precedence:
+            yield ')'
+        yield node.op
+        if node.right.precedence >= node.precedence:
+            yield '('
+        yield from _traverse(node.right, fmt)
+        if node.right.precedence >= node.precedence:
             yield ')'
 
-    @ __traverse.register
-    def _(self, node: ast.Alt):
-        yield from self.__traverse(node.alts[0])
-        if self.pretty and len(node.alts) > 0:
-            for i, v in enumerate(node.alts[1:]):
-                yield '--|'
-                yield from self.__traverse(v)
-                if i == len(node.alts) - 2:
-                    yield '\n'
-                    yield '  ' * self.indent
 
-    @ __traverse.register
-    def _(self, node: ast.Numeral):
-        # We treat numerals a bit differently, to see if they need spaces before, so
-        # we yield them as Numerals, not strs
-        if self.no_hex and node.hex and node.fractional == 0 and node.exponent == 0:
-            yield ast.Numeral(node.whole)
-        else:
-            yield node
+@ _traverse.register
+def _(node: ast.UnaryOp, fmt: Formatter):
+    yield node.op
+    if node.operand.precedence > node.precedence:
+        yield '('
+    yield from _traverse(node.operand, fmt)
+    if node.operand.precedence > node.precedence:
+        yield ')'
 
-    @ __traverse.register
-    def _(self, node: ast.Hint):
-        prev_double_quotes = self.double_quotes
-        prev_no_hex = self.no_hex
-        self.double_quotes = node.double_quotes
-        self.no_hex = node.no_hex
-        yield from self.__traverse(node.block)
-        self.double_quotes = prev_double_quotes
-        self.no_hex = prev_no_hex
+
+@ _traverse.register
+def _(node: ast.Alt, fmt: Formatter):
+    yield from _traverse(node.alts[0], fmt)
+    if fmt.pretty and len(node.alts) > 0:
+        for i, v in enumerate(node.alts[1:]):
+            yield '--|'
+            yield from _traverse(v, fmt)
+            if i == len(node.alts) - 2:
+                yield '\n'
+                yield '  ' * fmt.indent
+
+
+@ _traverse.register
+def _(node: ast.Numeral, fmt: Formatter):
+    # We treat numerals a bit differently, to see if they need spaces before, so
+    # we yield them as Numerals, not strs
+    if fmt.no_hex and node.hex and node.fractional == 0 and node.exponent == 0:
+        yield ast.Numeral(node.whole)
+    else:
+        yield node
+
+
+@ _traverse.register
+def _(node: ast.Hint, fmt: Formatter):
+    prev_double_quotes = fmt.double_quotes
+    prev_no_hex = fmt.no_hex
+    fmt.double_quotes = node.double_quotes
+    fmt.no_hex = node.no_hex
+    yield from _traverse(node.block, fmt)
+    fmt.double_quotes = prev_double_quotes
+    fmt.no_hex = prev_no_hex
