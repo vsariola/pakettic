@@ -32,10 +32,10 @@ _EVALUABLE_OPS = {
     "//": lambda l, r: l // r,
     "%": lambda l, r: l % r,
     "^": lambda l, r: l ** r,
-    "&": lambda l, r: int(l) & int(r) if int(l)==l and int(r)==r else None,
-    "|": lambda l, r: int(l) | int(r) if int(l)==l and int(r)==r else None,
-    "~": lambda l, r: int(l) ^ int(r) if int(l)==l and int(r)==r else None,
-    }
+    "&": lambda l, r: int(l) & int(r) if int(l) == l and int(r) == r else None,
+    "|": lambda l, r: int(l) | int(r) if int(l) == l and int(r) == r else None,
+    "~": lambda l, r: int(l) ^ int(r) if int(l) == l and int(r) == r else None,
+}
 
 _LOWERS = list(chr(i) for i in range(ord('a'), ord('z') + 1))
 _RESERVED = {'_G', 'BDR', 'SCN', 'BOOT', 'TIC', 'OVR', 'MENU', '_VERSION',
