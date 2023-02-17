@@ -1,8 +1,8 @@
 from cmath import inf
-import copy
 from functools import singledispatch
 import inspect
 import math
+import pickle
 import random
 from typing import Any, Callable, Optional, Union, get_args, get_origin, get_type_hints
 import tqdm
@@ -78,7 +78,7 @@ def minify(root: ast.Node) -> ast.Node:
         Returns:
             new_root (ast.Node): Root of the new, mutated abstract syntax tree
     """
-    new_root = copy.deepcopy(root)
+    new_root = pickle.loads(pickle.dumps(root))  # pickling/unpickling is faster than deepcopy
     changed_names = dict()
     changed_labels = dict()
 
@@ -113,7 +113,7 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
         Returns:
             new_root (ast.Node): Root of the new, mutated abstract syntax tree
     """
-    new_root = copy.deepcopy(root)
+    new_root = pickle.loads(pickle.dumps(root))  # pickling/unpickling is faster than deepcopy
     mutations = []
 
     used_names = set()
@@ -153,7 +153,7 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
             if node.op == "^" and node.right == _TWO:
                 def _mutation():
                     node.op = "*"
-                    node.right = copy.deepcopy(node.left)
+                    node.right = pickle.loads(pickle.dumps(node.left))
                 mutations.append(_mutation)
             if node.op in _EVALUABLE_OPS and type(node.left) == ast.Numeral and type(node.right) == ast.Numeral:
                 value = _EVALUABLE_OPS[node.op](node.left.value, node.right.value)
