@@ -212,12 +212,12 @@ the unpacked intro: the code will not be included in the packed cart.
 
 ## Credits
 
-[Veikko Sariola](https://github.com/vsariola) aka pestis/brainlez
-Coders!
-
-[wojciech-graj](https://github.com/wojciech-graj)
-
+Code contributors: [Veikko Sariola/pestis](https://github.com/vsariola), [wojciech-graj](https://github.com/wojciech-graj),
 [koorogi](https://github.com/koorogi)
+
+Test corpus contributors: [psenough](corpus/psenough/), [ilmenit](corpus/ilmenit/),
+[gigabates](corpus/gigabates/), [gasman](corpus/gasman/), [pellicus](corpus/pellicus/),
+[luchak](corpus/psenough/fabracid.lua).
 
 ## License
 
