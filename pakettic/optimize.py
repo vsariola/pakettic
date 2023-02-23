@@ -197,6 +197,10 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
             def _mutation2():
                 node.no_hex = not node.no_hex
             mutations.append(_mutation2)
+        elif type(node) == ast.Numeral:
+            def _mutation():
+                node.hex = not node.hex
+            mutations.append(_mutation)
 
         if node.original != None and parent != None:
             def _mutation():

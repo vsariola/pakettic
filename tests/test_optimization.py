@@ -54,3 +54,15 @@ class TestOptimization(unittest.TestCase):
                     self.assertGreater(len(printed), 0)
                 except Exception as err:
                     self.fail(err)
+
+    def test_minify(self):
+        cases = {
+                'poke(0x3fc0,0)': 'poke(16320,0)',
+                'print(1000000000001)': 'print(0xe8d4a51001)',
+        }
+        for a, expected in cases.items():
+            with self.subTest(parsed=a):
+                root = parser.parse_string(a)
+                opt_root = optimize.dlas(root, steps=100, list_length=5, init_margin=0, seed=0, cost_func=lambda root,_: len(printer.format(root)))
+                printed = printer.format(opt_root)
+                self.assertEqual(printed, expected)
