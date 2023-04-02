@@ -10,13 +10,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Perform initial variable minification before starting optimization
-- Try folding constants, to see if it compresses better
+- Constant folding: constant integer expressions are evaluated by
+  pakettic, in case they compresses better
+- More detailed reporting of the crunching results  
 
 ### Fixed
 
 - Spaces between tokens were not always printed even when needed
 - Hex numbers with fractional digits had the fractional digits printed in reverse
 - Hex numbers with an exponent raised an error when printed
+
+### Changed
+
+- The default compression level is now -z0; our benchmarking does not
+  show significant advantage over -z2 (only 0.2% over the test corpus),
+  yet it's almost 3 times slower. Use -z2 and higher only when you are
+  desperate and absolutely need that last byte.
 
 ## [1.1.1] - 2023-02-03
 
