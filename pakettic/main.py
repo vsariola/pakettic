@@ -1,3 +1,4 @@
+from cmath import inf
 import argparse
 from pakettic import ast
 from glob import glob
@@ -6,6 +7,8 @@ import sys
 import zlib
 import pkg_resources
 import zopfli
+import time
+import datetime
 
 from pakettic import parser, printer, optimize, ticfile
 import tqdm
@@ -138,8 +141,13 @@ def main():
     input = sorted(input)  # sort the input files so corpus will be reported in same order
     filepbar = tqdm.tqdm(input, leave=False, smoothing=0.02)
     error = False
-    total_size = 0
+    total_original_size = 0
+    total_minified_size = 0
+    total_optimized_size = 0
+    total_start_time = time.time()
+    maxpathlen = max(len(p) for p in input)
     for filepath in filepbar:
+        cart_start_time = time.time()
         _, filename = os.path.split(os.path.splitext(filepath)[0])
         ext = '.lua' if args.lua else '.tic'
         outfile = os.path.join(args.output, filename + '.packed' + ext) if os.path.isdir(args.output) else args.output
@@ -186,6 +194,8 @@ def main():
                     if args.print_best:
                         filepbar.write(f"-- {ret} bytes:\n{'-'*40}\n{printer.format(root, pretty=True).strip()}\n{'-'*40}")
                 return ret
+            _cost_func(root, inf)
+            minified_size = final_size  # current final_size is the size after minification
             if args.algorithm == 'lahc':
                 root = optimize.lahc(root, steps=args.steps, cost_func=_cost_func,
                                      list_length=args.lahc_history, init_margin=args.margin, seed=args.seed)
@@ -195,10 +205,14 @@ def main():
             else:
                 root = optimize.anneal(root, steps=args.steps, cost_func=_cost_func,
                                        start_temp=args.start_temp, end_temp=args.end_temp, seed=args.seed)
-        total_size += final_size
-        filepbar.write(f"{filepath} - Original: {original_size} bytes - Packed: {final_size} bytes")
+        total_original_size += original_size
+        total_optimized_size += final_size
+        total_minified_size += minified_size
+        cart_time_str = '.'.join(str(datetime.timedelta(seconds=int(time.time() - cart_start_time))).split(':'))
+        filepbar.write(f"{filepath.ljust(maxpathlen)} Time:{cart_time_str} Orig:{original_size:<5} Min:{minified_size:<5} Pack:{final_size:<5}")
     if len(input) > 1:
-        print("-" * 40 + f"\nTotal packed size: {total_size} bytes")
+        total_time_str = str(datetime.timedelta(seconds=int(time.time() - total_start_time)))
+        print("-" * 80 + f"\n{'Totals'.ljust(maxpathlen)} Time:{total_time_str} Orig:{total_original_size:<5} Min:{total_minified_size:<5} Pack:{total_optimized_size:<5}")
     sys.exit(1 if error else 0)
 
 
