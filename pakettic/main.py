@@ -107,8 +107,8 @@ def main():
     optgroup.add_argument('--seed', type=int, default=0, metavar='int',
                           help='random seed. default: %(default)d')
     zopfligroup = argparser.add_argument_group('optional arguments for tuning zopfli')
-    zopfligroup.add_argument('-z', '--zopfli-level', type=_parse_zopfli_level, default=_ZOPFLI_LEVELS[2], metavar='int',
-                             help='generic compression level for zopfli, 0-5. default: 2')
+    zopfligroup.add_argument('-z', '--zopfli-level', type=_parse_zopfli_level, default=_ZOPFLI_LEVELS[0], metavar='int',
+                             help='generic compression level for zopfli, 0-5. default: 0')
     zopfligroup.add_argument('--iterations', type=int, metavar='int',
                              help='number of iterations in zopfli. default: based on compression level')
     zopfligroup.add_argument('--split', action=argparse.BooleanOptionalAction,
