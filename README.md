@@ -177,7 +177,7 @@ the unpacked intro: the code will not be included in the packed cart.
 - The Zopfli compression level can be set with `-z<level>`, with level
   ranging from 0 to 5. When developing, start with `-z0` for fast
   optimization, and only increase when necessary e.g. when you are just
-  a few bytes over the limit. The default Zopfli-level is 2.
+  a few bytes over the limit. The default Zopfli-level is 0.
 - The algorithm uses a pseudorandom generator. Sometimes using a
   different seed finds a few byte better or worse solution. Use command
   line argument `--seed` to try different seeds.
