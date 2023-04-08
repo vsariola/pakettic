@@ -57,7 +57,9 @@ class TestPrinter(unittest.TestCase):
             'if true then elseif true then else break end',
             'debug()',
             'x=v1 y=v2',
-            'a=0x5 p=5'
+            'a=0x5 p=5',
+            'x=normalise{}',
+            "x=normalise''",
         ]
         for a in cases:
             with self.subTest(code=a):

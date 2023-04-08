@@ -334,7 +334,7 @@ def _(node: ast.Field, fmt: Formatter):
 def _(node: ast.Call, fmt: Formatter):
     yield from _traverse(node.func, fmt)
     if len(node.args) == 1 and (type(node.args[0]) is ast.Table or type(node.args[0]) is ast.LiteralString):
-        yield from _traverse(fmt, node.args[0])
+        yield from _traverse(node.args[0], fmt)
     else:
         yield '('
         for i, v in enumerate(node.args):
