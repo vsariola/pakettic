@@ -31,6 +31,18 @@ class ChunkID(IntEnum):
     CODE_ZIP = 16      # compressed with ZLIB. deprecated as of 1.00, won't be removed.
 
 
+DATACHUNK_ADDRESSES = {
+    ChunkID.TILES: 0x4000,
+    ChunkID.SPRITES: 0x6000,
+    ChunkID.MAP: 0x8000,
+    ChunkID.FLAGS: 0x14404,
+    ChunkID.SAMPLES: 0x100E4,
+    ChunkID.WAVEFORM: 0x0FFE4,
+    ChunkID.PALETTE: 0x3FC0,
+    ChunkID.MUSIC: 0x13E64,
+    ChunkID.PATTERNS: 0x11164
+}
+
 # Each cart may have 1-8 banks, which may or may not be present
 Cart = dict[tuple[int, ChunkID], ByteString]
 
@@ -169,6 +181,21 @@ def write(cart: Cart, filepath: str, ext: str = None, pedantic=False) -> int:
     else:
         with io.open(filepath, "wb") as file:
             return write_tic(cart, file, pedantic=pedantic)
+
+
+def data_to_code(cart: Cart):
+    codechunks = [c for c in cart if c[1] == ChunkID.CODE]
+    for c in codechunks:
+        code = cart[c].decode("ascii")
+        bank = c[0]
+        noncodechunks = [c for c in cart if c[0] == bank and c[1] in DATACHUNK_ADDRESSES]
+        for e in noncodechunks:
+            addr = DATACHUNK_ADDRESSES[e[1]]
+            datastr = cart[e].hex()
+            loader = "i=0\nfor m in string.gmatch('" + datastr + "', '%x%x') do\n  poke("+str(addr)+"+i,tonumber('0x'..m))\n  i=i+1\nend\n"
+            code = loader + code
+            del cart[e]
+        cart[c] = code.encode("ascii")
 
 
 _LANGLE, _RANGLE, _SLASH, _COLON = map(

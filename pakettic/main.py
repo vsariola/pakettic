@@ -80,6 +80,7 @@ def main():
     argparser.add_argument('-c', '--chunks',
                            default='code,default', metavar='str', help='chunk types to include and their order. valid: ALL, ALL_EXCEPT_DEFAULT, or comma-separated list without spaces: BINARY,CODE,COVER_DEP,DEFAULT,FLAGS,MAP,MUSIC,PALETTE,PATTERNS_DEP,PATTERNS,SAMPLES,SCREEN,SPRITES,TILES,WAVEFORM. default: %(default)s',
                            type=_parse_chunks_arg)
+    argparser.add_argument('-d', '--data-to-code', action=argparse.BooleanOptionalAction, default=False, help='convert data chunks into code, so it can be compressed')
     argparser.add_argument('--pedantic', action='store_const', const=True, default=False,
                            help='write DEFAULT chunk in full even when it is the last chunk')
     optgroup = argparser.add_argument_group('optional arguments for the optimization algorithm')
@@ -165,6 +166,8 @@ def main():
                     for k, v in cart.items() if k[1] == ticfile.ChunkID.CODE_ZIP])  # decompress zipped chunks
         cart[(0, ticfile.ChunkID.DEFAULT)] = b''  # add default chunk if it's missing
         cart = dict(c for i in args.chunks for c in cart.items() if c[0][1] == i)  # only include the chunks listed in args
+        if args.data_to_code:
+            ticfile.data_to_code(cart)
         filepbar.set_description(f"Compressing   {filepath_sliced}")
         outcart = cart.copy() if args.uncompressed else dict((k, v) if k[1] != ticfile.ChunkID.CODE else (
             (k[0], ticfile.ChunkID.CODE_ZIP), _compress(v, args.split, args.split_max, args.iterations)) for k, v in cart.items())

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Option --data-to-code that puts the data in hexadecimal strings in the
+  code and adds a small stub to load the data in the string at right
+  address
+
 ### Fixed
 
 - Printing function calls with a single table or string parameter
