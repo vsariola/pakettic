@@ -197,6 +197,14 @@ the unpacked intro: the code will not be included in the packed cart.
 - Working on a tweet-cart? Use `-l` to output LUA carts, which are
   uncompressed. The optimization algorithm then just optimizes the
   uncompressed size of the code.
+- Do you want to use the TIC-80 sprites or the tracker, but don't like
+  the fact that the data chunks are uncompressed? Use `-d` to have
+  pakettic automatically convert all data chunks into hexadecimal
+  strings in the code, along with a small stub placed at the beginning
+  of the code that interprets the string and loads the data at correct
+  address. For example,
+  `-d -cCODE,MUSIC,PATTERNS,WAVEFORM,SAMPLES,DEFAULT` would include the
+  necessary chunks for the music.
 
 ## Known issues
 
