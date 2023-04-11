@@ -80,7 +80,7 @@ def main():
     argparser.add_argument('-c', '--chunks',
                            default='code,default', metavar='str', help='chunk types to include and their order. valid: ALL, ALL_EXCEPT_DEFAULT, or comma-separated list without spaces: BINARY,CODE,COVER_DEP,DEFAULT,FLAGS,MAP,MUSIC,PALETTE,PATTERNS_DEP,PATTERNS,SAMPLES,SCREEN,SPRITES,TILES,WAVEFORM. default: %(default)s',
                            type=_parse_chunks_arg)
-    argparser.add_argument('-d', '--data-to-code', action=argparse.BooleanOptionalAction, default=False, help='convert data chunks into code, so it can be compressed')
+    argparser.add_argument('-d', '--data-to-code', action='store_const', const=True, default=False, help='convert data chunks into code, so they can be compressed')
     argparser.add_argument('--pedantic', action='store_const', const=True, default=False,
                            help='write DEFAULT chunk in full even when it is the last chunk')
     optgroup = argparser.add_argument_group('optional arguments for the optimization algorithm')
