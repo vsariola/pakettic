@@ -431,7 +431,12 @@ class TestUnaryOperators(unittest.TestCase):
 
 
 class TestLocals(unittest.TestCase):
-    def test_local_vars(self):
+    def test_local_var(self):
+        got = parser.parse_string('local x')
+        expected = Block([Local(targets=[Name('x')], values=None)])
+        self.assertEqual(got, expected)
+
+    def test_local_assignment(self):
         got = parser.parse_string('local x = 5')
         expected = Block([Local(targets=[Name('x')], values=[Numeral(5)])])
         self.assertEqual(got, expected)

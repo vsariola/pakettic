@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Printing function calls with a single table or string parameter
+- Local variables without immediate assignment crashed the parser
 
 ## [1.2.0] - 2023-04-02
 

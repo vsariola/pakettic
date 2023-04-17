@@ -254,11 +254,12 @@ def _(node: ast.Local, fmt: Formatter):
         if i > 0:
             yield ','
         yield from _traverse(v, fmt)
-    yield '='
-    for i, v in enumerate(node.values):
-        if i > 0:
-            yield ','
-        yield from _traverse(v, fmt)
+    if node.values is not None:
+        yield '='
+        for i, v in enumerate(node.values):
+            if i > 0:
+                yield ','
+            yield from _traverse(v, fmt)
 
 
 @ _traverse.register

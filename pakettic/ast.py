@@ -124,7 +124,7 @@ class ForIn(Node):
 class Local(Node):
     """Represents a local assignment in the abstract syntax tree"""
     targets: list[Name]
-    values: list[Node]
+    values: Optional[list[Node]]
 
 
 @dataclass

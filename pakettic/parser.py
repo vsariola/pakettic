@@ -114,8 +114,8 @@ if_.set_parse_action(lambda toks: functools.reduce(lambda x, y: ast.If(x.test, b
 for_in = FOR + pp.Group(namelist, aslist=True) + IN + \
     explist + DO + block + END
 for_in.set_parse_action(lambda toks: ast.ForIn(toks[0], toks[1], toks[2]))
-local_var = LOCAL + pp.Group(namelist, aslist=True) + EQ + explist
-local_var.set_parse_action(lambda toks: ast.Local(toks[0], toks[1]))
+local_var = LOCAL + pp.Group(namelist, aslist=True) + (EQ + explist)[0, 1]
+local_var.set_parse_action(lambda toks: ast.Local(toks[0], None) if len(toks) < 2 else ast.Local(toks[0], toks[1]))
 func_vanilla_def = FUNCTION + funcname + funcbody
 func_vanilla_def.set_parse_action(lambda toks: ast.Assign([toks[0]], [toks[1]]))
 # function t.a.b.c:f (params) body end is syntactic sugar for t.a.b.c.f = function (self, params) body end

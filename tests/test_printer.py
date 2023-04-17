@@ -36,6 +36,7 @@ class TestPrinter(unittest.TestCase):
             'p[5]=5',
             'p[5].x=5',
             'x,y=1,2',
+            'local x,y,z',
             'local y=42',
             'do break end',
             'for i=1,10 do end',

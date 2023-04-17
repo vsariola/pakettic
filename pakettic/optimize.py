@@ -400,11 +400,12 @@ def apply_trans(node: ast.Node, trans: Callable[[ast.Node], ast.Node]) -> ast.No
             attr = getattr(node, name)
             origin = get_origin(typehint)
             args = get_args(typehint)
+            if origin is Optional:
+                if attr is None:
+                    continue
+                origin = args
             if origin is list and len(args) > 0 and issubclass(args[0], ast.Node):
                 replaces[name] = [apply_trans(e, trans) for e in attr]
-            elif origin is Optional:
-                if attr is not None:
-                    replaces[name] = apply_trans(attr, trans)
             elif inspect.isclass(typehint) and issubclass(typehint, ast.Node):
                 replaces[name] = apply_trans(attr, trans)
     except TypeError:
@@ -492,8 +493,9 @@ def _(node: ast.Local, visitor: Callable[[ast.Node, ast.Node, str], None], paren
     visitor(node, parent, attr)
     for i, t in enumerate(node.targets):
         visit(t, visitor, node, f"targets.{i}")
-    for i, v in enumerate(node.values):
-        visit(v, visitor, node, f"values.{i}")
+    if node.values is not None:
+        for i, v in enumerate(node.values):
+            visit(v, visitor, node, f"values.{i}")
 
 
 @ visit.register
