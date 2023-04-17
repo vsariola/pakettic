@@ -1,6 +1,7 @@
 from cmath import inf
 from functools import singledispatch
 import inspect
+import itertools
 import math
 import pickle
 import random
@@ -13,12 +14,13 @@ from dataclasses import replace
 def _toBase26(num):
     s = ""
     while (num > 0):
-        s += (chr(ord('z')-(num-1) % 26))
+        s += (chr(ord('z') - (num - 1) % 26))
         num -= 1
         num //= 26
     return s
 
 
+_MINIFIED_NAMES = (name for i in itertools.count(start=1, step=1) if (name := _toBase26(i)) not in _RESERVED and name not in parser.keywords)
 _FLIPPABLE_OPS = [">", "<", ">=", "<=", "~=", "=="]
 _FLIPPED_OPS = ["<", ">", "<=", ">=", "~=", "=="]
 _REORDERABLE_OPS = ["+", "-", "*", "/", "&", "|", "~"]
@@ -81,23 +83,25 @@ def minify(root: ast.Node) -> ast.Node:
     new_root = pickle.loads(pickle.dumps(root))  # pickling/unpickling is faster than deepcopy
     changed_names = dict()
     changed_labels = dict()
+    name_iter = iter(_MINIFIED_NAMES)
+    label_iter = iter(_MINIFIED_NAMES)
 
-    def _tryget(d: dict, key: str):
+    def _tryget(d: dict, key: str, it):
         if key in _RESERVED:
             return key
         new = d.get(key, None)
         if new is None:
-            new = _toBase26(len(d)+1)
+            new = next(it)
         d[key] = new
         return new
 
     def _minify(node: ast.Node, parent: ast.Node, attr: str):
         if type(node) == ast.Name:
-            node.id = _tryget(changed_names, node.id)
+            node.id = _tryget(changed_names, node.id, name_iter)
         elif type(node) == ast.Label:
-            node.name = _tryget(changed_labels, node.name)
+            node.name = _tryget(changed_labels, node.name, label_iter)
         elif type(node) == ast.Goto:
-            node.target = _tryget(changed_labels, node.target)
+            node.target = _tryget(changed_labels, node.target, label_iter)
 
     visit(new_root, _minify)
     return new_root

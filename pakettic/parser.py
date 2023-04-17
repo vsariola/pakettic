@@ -8,14 +8,15 @@ pp.ParserElement.enablePackrat()
 LBRACK, RBRACK, LBRACE, RBRACE, LPAR, RPAR, EQ, COMMA, SEMI, COLON, PERIOD, VLINE = map(
     pp.Suppress, '[]{}()=,;:.|'
 )
-keywords = {
-    k.upper(): pp.Combine(pp.Literal(k) + ~pp.Char(pp.alphanums + "_")) .suppress()
-    for k in """\
+keywords = """\
     return break do end while if then elseif else for in function local repeat until nil false true and or not goto
     """.split()
+keyword_pats = {
+    k.upper(): pp.Combine(pp.Literal(k) + ~pp.Char(pp.alphanums + "_")) .suppress()
+    for k in keywords
 }
-vars().update(keywords)
-any_keyword = pp.MatchFirst(keywords.values()).setName("<keyword>")
+vars().update(keyword_pats)
+any_keyword = pp.MatchFirst(keyword_pats.values()).setName("<keyword>")
 
 # Name
 Name = ~any_keyword + pp.Word(pp.alphas + "_", pp.alphanums + "_")
