@@ -83,6 +83,8 @@ def main():
     argparser.add_argument('-d', '--data-to-code', action='store_const', const=True, default=False, help='convert data chunks into code, so they can be compressed')
     argparser.add_argument('--pedantic', action='store_const', const=True, default=False,
                            help='write DEFAULT chunk in full even when it is the last chunk')
+    argparser.add_argument('--no-load', action='store_const', const=True, default=False,
+                           help="disable converting function()end into load''")
     optgroup = argparser.add_argument_group('optional arguments for the optimization algorithm')
     optgroup.add_argument('-a', '--algorithm',
                           action='store',
@@ -182,7 +184,7 @@ def main():
 
             def _cost_func(root, best_cost):
                 nonlocal final_size
-                bytes = printer.format(root).encode("ascii")
+                bytes = printer.format(root, no_load=args.no_load).encode("ascii")
                 key = c
                 if not args.uncompressed:
                     key = (c[0], ticfile.ChunkID.CODE_ZIP)

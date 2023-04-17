@@ -7,8 +7,8 @@ import re
 from pakettic import ast
 
 
-def format(node: ast.Node, pretty: bool = False) -> str:
-    return Formatter(pretty=pretty).format(node)
+def format(node: ast.Node, pretty: bool = False, no_load: bool = False) -> str:
+    return Formatter(pretty=pretty, no_load=no_load).format(node)
 
 
 _hexy = re.compile('[0-9a-fxA-FXpP]').search
@@ -30,6 +30,7 @@ class Formatter:
     double_quotes: bool = False
     pretty: bool = False
     no_hex: bool = False
+    no_load: bool = False
 
     def format(self, node: ast.Node) -> str:
         tokens = _traverse(node, self)
@@ -264,9 +265,9 @@ def _(node: ast.Local, fmt: Formatter):
 
 @ _traverse.register
 def _(node: ast.Func, fmt: Formatter):
-    if (len(node.args) == 0 or (len(node.args) == 1 and type(node.args[0]) == ast.Ellipsis)) and not fmt.pretty and node.oneline:
+    if (len(node.args) == 0 or (len(node.args) == 1 and type(node.args[0]) == ast.Ellipsis)) and not fmt.pretty and not fmt.no_load and node.oneline:
         fmt.indent += 1
-        fmt2 = Formatter(fmt.indent + 1, double_quotes=not fmt.double_quotes, pretty=False)
+        fmt2 = Formatter(fmt.indent + 1, double_quotes=not fmt.double_quotes, pretty=False, no_load=fmt.no_load)
         s = fmt2.format(node.body)
         yield 'load'
         yield fmt.escape(s)
