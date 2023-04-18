@@ -108,6 +108,13 @@ recompress already compressed carts. Conversely, `function()<code>end`
 or `function(...)<code>end` is replaced with `load'<code>'` during
 compression.
 
+Note that `function(...)<code>end` and `load'<code>'` are not 100%
+semantically identical: the load version cannot access locals in the outer
+scope. For example: `local x="hello" function f()print(x)end` works but
+`local x="hello" f=load'print(x)'` does not. Since locals are rarely
+used in size-coding, we default to using the load-trick, but you can
+disable it with the command-line parameter `--no-load`.
+
 However, pakettic does not convert functions with parameters. In
 particular, pakettic does not automatically convert
 `function SCN(x)<code>end` into `SCN=load'x=...<code>'`, because they
