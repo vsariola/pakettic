@@ -94,7 +94,7 @@ break_ = BREAK.set_parse_action(lambda toks: ast.Break())
 goto = (GOTO - Name).set_parse_action(lambda toks: ast.Goto(toks[0]))
 doblock = DO - block - END
 doblock.set_parse_action(lambda t: ast.Do(t[0]))
-permblockstart = pp.Combine(pp.Literal('--{') + pp.Optional('!'))
+permblockstart = pp.Regex(r"--{[!]?")
 permblockstart.set_parse_action(lambda t:
                                 len(t[0]) < 4)
 permblock = permblockstart + pp.Group(stat[0, ...], aslist=True) + pp.Literal('--}').suppress()
@@ -284,7 +284,7 @@ fieldsep <<= COMMA | SEMI
 
 # ignore comments, WARNING: has to be last, as it updates all the rules recursively
 comment_intro = pp.Literal("--")
-short_comment = comment_intro + ~pp.FollowedBy(VLINE | LBRACE | RBRACE) + pp.restOfLine
+short_comment = pp.Regex(r"--(?![\|\{\}])") + pp.restOfLine
 long_comment = pp.Regex(r"--\[(=*)\[(?P<str>[\s\S]*?)\]\1\]")
 debug_comment = pp.Regex(r"--!(=*)\[[\s\S]*?--!\1\]")
 lua_comment = debug_comment | long_comment | short_comment

@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   error; for example, in `x=1 orange=2` the first statement was parsed
   as `x=1 or ange`, followed by `=1` which gave the parse error.
 - Escaping `\r` and `\f` in quoted string literals
+- `-- {` was not considered comment, even though it was not considered
+  permutation block either
 
 ## [1.2.0] - 2023-04-02
 

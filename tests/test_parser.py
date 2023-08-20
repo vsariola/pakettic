@@ -305,6 +305,11 @@ class TestMagicComments(unittest.TestCase):
         expected = Block([Perm([Label("foo"), Label("bar")], allow_reorder=True)])
         self.assertEqual(got, expected)
 
+    def test_not_reordering(self):
+        got = parser.parse_string('-- { this should be just a comment --}')
+        expected = Block([])
+        self.assertEqual(got, expected)
+
     def test_disabled_reordering(self):
         got = parser.parse_string('--{!\n::foo::\n::bar::\n--}')
         expected = Block([Perm([Label("foo"), Label("bar")], allow_reorder=False)])
