@@ -61,6 +61,11 @@ class TestPrinter(unittest.TestCase):
             'a=0x5 p=5',
             'x=normalise{}',
             "x=normalise''",
+            "x='\\n'",
+            "x='\\r\\n'",
+            "x='\\r'",
+            "x='\\t'",
+            "x='\\f'",
         ]
         for a in cases:
             with self.subTest(code=a):

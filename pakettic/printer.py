@@ -16,10 +16,14 @@ _alphaunder = re.compile('[_a-zA-Z]').search
 _alphanumunder = re.compile('[_a-zA-Z0-9]').search
 _single_quote_translation = str.maketrans({"\n": r"\n",
                                            "\t": r"\t",
+                                           "\f": r"\f",
+                                           "\r": r"\r",
                                            "\\": r"\\",
                                            "'": r"\'"})
 _double_quote_translation = str.maketrans({"\n": r"\n",
                                            "\t": r"\t",
+                                           "\f": r"\f",
+                                           "\r": r"\r",
                                            "\\": r"\\",
                                            "\"": r'\"'})
 
