@@ -5,24 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.3.0] - 2023-08-20
 
 ### Added
 
-- Option --data-to-code that puts the data in hexadecimal strings in the
-  code and adds a small stub to load the data in the string at right
-  address
-- Option to disable using the load trick altogether. load'' is not
-  entirely semantically identical to function()end, as the load'' cannot
-  access local variables in the outer scope. However, this is such a
-  rare occurrence that only disable it when absolutely necessary.
+- Option `--data-to-code` (or just `-d`) that puts the data in
+  hexadecimal strings in the code and adds a small stub to load the data
+  in the string at right address
+- Option `--no-load` to disable using the load trick altogether.
+  `load''` is not entirely semantically identical to `function()end`, as
+  the `load''` cannot access local variables in the outer scope.
+  However, this is such a rare occurrence that only disable it when
+  absolutely necessary.
+
+### Changed
+
 - Parse errors report the offending line more accurately
 
 ### Fixed
 
 - Printing function calls with a single table or string parameter
 - Local variables without immediate assignment crashed the parser
-- The initial minification used reserved keywords (in particular: or)
+- The initial minification used reserved keywords (in particular: `or`)
 - Handling carts with multiple CODE chunks
 - Variable names that started with `or` or `and` could give an parse
   error; for example, in `x=1 orange=2` the first statement was parsed
@@ -109,7 +113,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Magic comments to allow reordering statements and trying alternative
   expressions
 
-[unreleased]: https://github.com/vsariola/pakettic/compare/v1.2.0...HEAD
+[unreleased]: https://github.com/vsariola/pakettic/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/vsariola/pakettic/releases/tag/v1.3.0
 [1.2.0]: https://github.com/vsariola/pakettic/releases/tag/v1.2.0
 [1.1.1]: https://github.com/vsariola/pakettic/releases/tag/v1.1.1
 [1.1.0]: https://github.com/vsariola/pakettic/releases/tag/v1.1.0
