@@ -91,42 +91,42 @@ chunk = block
 assign = varlist + EQ + explist
 assign.set_parse_action(lambda toks: ast.Assign(toks[0], toks[1]))
 break_ = BREAK.set_parse_action(lambda toks: ast.Break())
-goto = (GOTO + Name).set_parse_action(lambda toks: ast.Goto(toks[0]))
-doblock = DO + block + END
+goto = (GOTO - Name).set_parse_action(lambda toks: ast.Goto(toks[0]))
+doblock = DO - block - END
 doblock.set_parse_action(lambda t: ast.Do(t[0]))
 permblockstart = pp.Combine(pp.Literal('--{') + pp.Optional('!'))
 permblockstart.set_parse_action(lambda t:
                                 len(t[0]) < 4)
 permblock = permblockstart + pp.Group(stat[0, ...], aslist=True) + pp.Literal('--}').suppress()
 permblock.set_parse_action(lambda t: ast.Perm(t[1], allow_reorder=t[0]))
-while_ = WHILE + exp + DO + block + END
+while_ = WHILE - exp - DO - block - END
 while_.set_parse_action(lambda toks: ast.While(toks[0], toks[1]))
-repeat = REPEAT + block + UNTIL + exp
+repeat = REPEAT - block - UNTIL - exp
 repeat.set_parse_action(lambda toks: ast.Repeat(condition=toks[1], block=toks[0]))
-for_range = FOR + Name + EQ + exp + COMMA + exp + (COMMA + exp)[0, 1] + DO + block + END
+for_range = FOR + Name + EQ - exp - COMMA - exp - (COMMA - exp)[0, 1] - DO - block - END
 for_range.set_parse_action(lambda t: ast.ForRange(ast.Name(t[0]), t[1], t[2], None, t[3]) if len(
     t) < 5 else ast.ForRange(ast.Name(t[0]), t[1], t[2], t[3], t[4]))
-if_ = IF + exp + THEN + block + \
-    pp.Group(pp.ZeroOrMore(pp.Group(ELSEIF + exp + THEN + block))) + \
-    pp.Optional(ELSE + block, default=None) + END
+if_ = IF - exp + THEN + block + \
+    pp.Group(pp.ZeroOrMore(pp.Group(ELSEIF - exp + THEN + block))) + \
+    pp.Optional(ELSE - block, default=None) + END
 # The AST does not know anything about elseif; split them into else if
 if_.set_parse_action(lambda toks: functools.reduce(lambda x, y: ast.If(x.test, body=x.body, orelse=ast.Block([ast.If(
     test=y[0], body=y[1], orelse=x.orelse)])), reversed(toks[2]), ast.If(test=toks[0], body=toks[1], orelse=toks[3])))
-for_in = FOR + pp.Group(namelist, aslist=True) + IN + \
-    explist + DO + block + END
+for_in = FOR + pp.Group(namelist, aslist=True) + IN - \
+    explist - DO - block - END
 for_in.set_parse_action(lambda toks: ast.ForIn(toks[0], toks[1], toks[2]))
-local_var = LOCAL + pp.Group(namelist, aslist=True) + (EQ + explist)[0, 1]
+local_var = LOCAL + pp.Group(namelist, aslist=True) - (EQ + explist)[0, 1]
 local_var.set_parse_action(lambda toks: ast.Local(toks[0], None) if len(toks) < 2 else ast.Local(toks[0], toks[1]))
 func_vanilla_def = FUNCTION + funcname + funcbody
 func_vanilla_def.set_parse_action(lambda toks: ast.Assign([toks[0]], [toks[1]]))
 # function t.a.b.c:f (params) body end is syntactic sugar for t.a.b.c.f = function (self, params) body end
-func_member_def = FUNCTION + funcname + COLON + Name + funcbody
+func_member_def = FUNCTION + funcname + COLON - Name - funcbody
 func_member_def.set_parse_action(lambda t: ast.Assign(
     [ast.Index(t[0], ast.LiteralString(t[1]))],
     [ast.Func(args=[ast.Name('self')] + t[2].args, body=t[2].body)]
 ))
 func_def = func_vanilla_def | func_member_def
-local_func_def = LOCAL + FUNCTION + Name + funcbody
+local_func_def = LOCAL + FUNCTION - Name - funcbody
 local_func_def.set_parse_action(lambda toks: ast.Local([ast.Name(toks[0])], [toks[1]]))
 
 stat <<= SEMI | \
@@ -147,27 +147,27 @@ stat <<= SEMI | \
     functioncall
 
 # retstat ::= return [explist] [‘;’]
-retstat <<= RETURN + pp.Optional(explist, default=[]) + SEMI[0, 1]
+retstat <<= RETURN - pp.Optional(explist, default=[]) - SEMI[0, 1]
 retstat.set_parse_action(lambda toks: ast.Return(exps=toks[0]))
 
 # label ::= ‘::’ Name ‘::’
-label <<= pp.Literal('::').suppress() + Name + pp.Literal('::').suppress()
+label <<= pp.Literal('::').suppress() - Name - pp.Literal('::').suppress()
 label.set_parse_action(lambda toks: ast.Label(toks[0]))
 
 # funcname ::= Name {‘.’ Name} [‘:’ Name]
-funcname <<= Name + (PERIOD + Name)[0, ...]
+funcname <<= Name - (PERIOD - Name)[0, ...]
 funcname.set_parse_action(lambda t: functools.reduce(lambda x, y: ast.Index(x, ast.LiteralString(y)), t[1:], ast.Name(t[0])))
 # the [‘:’ Name] case is handled separately
 
 # varlist ::= var {‘,’ var}
-varlist <<= pp.Group(var + (COMMA + var)[0, ...], aslist=True)
+varlist <<= pp.Group(var - (COMMA - var)[0, ...], aslist=True)
 
 # namelist ::= Name {‘,’ Name}
 _Name = Name.copy().set_parse_action(lambda t: ast.Name(t[0]))
-namelist <<= _Name + (COMMA + _Name)[0, ...]
+namelist <<= _Name - (COMMA - _Name)[0, ...]
 
 # explist ::= exp {‘,’ exp}
-explist <<= pp.Group(exp + (COMMA + exp)[0, ...], aslist=True)
+explist <<= pp.Group(exp - (COMMA - exp)[0, ...], aslist=True)
 
 # exp ::=  nil | false | true | Numeral | LiteralString | ‘...’ | functiondef | prefixexp | tableconstructor | exp binop exp | unop exp
 
@@ -189,12 +189,12 @@ ellipsis = pp.Literal("...").set_parse_action(lambda: ast.Ellipsis())
 # thing on its left, but less strongly than unary to its right. So, we
 # need to treat it separately
 expliteral = nil | false | true | Numeral | LiteralString | ellipsis | functiondef | prefixexp | tableconstructor | LPAR + exp + RPAR
-altexp = expliteral + (pp.Literal('--|').suppress() + expliteral)[0, ...]
+altexp = expliteral + (pp.Literal('--|').suppress() - expliteral)[0, ...]
 altexp.set_parse_action(alt)
 powerexp = pp.Forward()
 unaryexp = pp.oneOf('not # - ~')[0, ...] + powerexp
 unaryexp.set_parse_action(unaryAction)
-powerexp <<= altexp + (pp.Literal('^').suppress() + unaryexp)[0, 1]
+powerexp <<= altexp + (pp.Literal('^').suppress() - unaryexp)[0, 1]
 powerexp.set_parse_action(lambda t: ast.BinOp(left=t[0], op="^", right=t[1]) if len(t) > 1 else t[0])
 exp <<= pp.infixNotation(
     unaryexp,
@@ -268,7 +268,7 @@ parlist <<= pp.Group(namelist + (COMMA + ellipsis)[0, 1] | ellipsis, aslist=True
 
 
 # tableconstructor: := ‘{’ [fieldlist] ‘}’
-tableconstructor <<= pp.Group(LBRACE + fieldlist[0, 1] + RBRACE, aslist=True)
+tableconstructor <<= pp.Group(LBRACE - fieldlist[0, 1] - RBRACE, aslist=True)
 tableconstructor.set_parse_action(lambda t: ast.Table(fields=t[0]))
 
 # fieldlist: := field {fieldsep field}[fieldsep]

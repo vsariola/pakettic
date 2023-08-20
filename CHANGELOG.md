@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   entirely semantically identical to function()end, as the load'' cannot
   access local variables in the outer scope. However, this is such a
   rare occurrence that only disable it when absolutely necessary.
+- Parse errors report the offending line more accurately
 
 ### Fixed
 
