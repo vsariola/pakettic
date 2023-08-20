@@ -208,8 +208,8 @@ exp <<= pp.infixNotation(
         ('|', 2, pp.OpAssoc.LEFT, left_assoc),
         (pp.oneOf('< > <= >= ~= ==', left_assoc),
          2, pp.OpAssoc.LEFT, left_assoc),
-        ('and', 2, pp.OpAssoc.LEFT, left_assoc),
-        ('or', 2, pp.OpAssoc.LEFT, left_assoc),
+        (pp.Combine(pp.Literal('and') + ~pp.Char(pp.alphanums + "_")), 2, pp.OpAssoc.LEFT, left_assoc), # can't use AND as it suppresses the token
+        (pp.Combine(pp.Literal('or') + ~pp.Char(pp.alphanums + "_")), 2, pp.OpAssoc.LEFT, left_assoc), # can't use OR as it suppresses the token
     ]
 )
 

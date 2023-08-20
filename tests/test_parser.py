@@ -160,6 +160,11 @@ class TestAssignments(unittest.TestCase):
                 with self.assertRaises(Exception):
                     parser.chunk.parse_string(a, parse_all=True)
 
+    def test_reserved_words_separate(self):
+        got = parser.parse_string('x=1 orange=2')
+        expected = Block([Assign([Name('x')], [Numeral(1)]), Assign([Name('orange')], [Numeral(2)])])
+        self.assertEqual(got, expected)
+
 
 class TestFlowControl(unittest.TestCase):
     def test_valid_labels(self):

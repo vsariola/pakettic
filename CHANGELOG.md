@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Local variables without immediate assignment crashed the parser
 - The initial minification used reserved keywords (in particular: or)
 - Handling carts with multiple CODE chunks
+- Variable names that started with `or` or `and` could give an parse
+  error; for example, in `x=1 orange=2` the first statement was parsed
+  as `x=1 or ange`, followed by `=1` which gave the parse error.
 
 ## [1.2.0] - 2023-04-02
 
