@@ -12,7 +12,7 @@ keywords = """\
     return break do end while if then elseif else for in function local repeat until nil false true and or not goto
     """.split()
 keyword_pats = {
-    k.upper(): pp.Combine(pp.Literal(k) + ~pp.Char(pp.alphanums + "_")) .suppress()
+    k.upper(): pp.Regex(k + r"(?![a-zA-Z_])").suppress()
     for k in keywords
 }
 vars().update(keyword_pats)
@@ -208,8 +208,8 @@ exp <<= pp.infixNotation(
         ('|', 2, pp.OpAssoc.LEFT, left_assoc),
         (pp.oneOf('< > <= >= ~= ==', left_assoc),
          2, pp.OpAssoc.LEFT, left_assoc),
-        (pp.Combine(pp.Literal('and') + ~pp.Char(pp.alphanums + "_")), 2, pp.OpAssoc.LEFT, left_assoc), # can't use AND as it suppresses the token
-        (pp.Combine(pp.Literal('or') + ~pp.Char(pp.alphanums + "_")), 2, pp.OpAssoc.LEFT, left_assoc), # can't use OR as it suppresses the token
+        (pp.Regex(r"and(?![a-zA-Z_])"), 2, pp.OpAssoc.LEFT, left_assoc),  # can't use AND as it suppresses the token
+        (pp.Regex(r"or(?![a-zA-Z_])"), 2, pp.OpAssoc.LEFT, left_assoc),  # can't use OR as it suppresses the token
     ]
 )
 
