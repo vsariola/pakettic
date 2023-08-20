@@ -181,6 +181,12 @@ the unpacked intro: the code will not be included in the packed cart.
 
 ## Tips for command line arguments
 
+- If pakettic complains about CODE_ZIP chunk size, the code is just too
+  big after compression. In TIC-80, CODE_ZIP chunks do not support
+  multiple banks (and likely never will, as the feature is already
+  deprecated), and thus are unfortunately limited to 65535 bytes.
+  `--uncompressed` is a temporary fix, but code will be uncompressed and
+  thus the size much larger.
 - The Zopfli compression level can be set with `-z<level>`, with level
   ranging from 0 to 5. When developing, start with `-z0` for fast
   optimization, and only increase when necessary e.g. when you are just
@@ -204,6 +210,8 @@ the unpacked intro: the code will not be included in the packed cart.
 - Working on a tweet-cart? Use `-l` to output LUA carts, which are
   uncompressed. The optimization algorithm then just optimizes the
   uncompressed size of the code.
+- If the packed cart is missing sprites, music, map etc., try adding
+  `-call` (or something more specific) to include necessary chunks.
 - Do you want to use the TIC-80 sprites or the tracker, but don't like
   the fact that the data chunks are uncompressed? Use `-d` to have
   pakettic automatically convert all data chunks into hexadecimal
