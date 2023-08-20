@@ -67,7 +67,16 @@ def write_tic(cart: Cart, file: typing.BinaryIO, pedantic=False) -> int:
         data = cart[bank_chunk].rstrip(b'\0') if chunk != ChunkID.CODE_ZIP and chunk != ChunkID.CODE else cart[bank_chunk]
         if chunk != ChunkID.DEFAULT and len(data) == 0:
             continue
-        header = struct.pack("<BHB", packed_bank_chunk, len(data), 0)  # the last byte is reserved
+        size = len(data)
+        if (chunk == ChunkID.CODE or chunk == ChunkID.BINARY):
+            if size == 65536:
+                size = 0
+            elif size > 65536:
+                raise Exception(f"{chunk.name} chunk in bank {bank} is {size} bytes, maximum size 65536 bytes")
+        else:
+            if size > 65535:
+                raise Exception(f"{chunk.name} chunk in bank {bank} is {size} bytes, maximum size 65535 bytes")
+        header = struct.pack("<BHB", packed_bank_chunk, size, 0)  # the last byte is reserved
         total_size += file.write(header)
         total_size += file.write(data)
     return total_size
@@ -90,10 +99,64 @@ def read_tic(file: typing.BinaryIO) -> Cart:
         chunk_id = ChunkID(bank_and_chunk_bytes[0] & 31)
         header = file.read(3)  # sizecoding hackers usually end CHUNK_DEFAULT abruptly without header
         size = struct.unpack("<H", header[:2])[0] if len(header) > 2 else 0
+        if (chunk_id == ChunkID.CODE or chunk_id == ChunkID.BINARY) and size == 0:
+            size = 65536
         chunk = file.read(size)
         cart[bank, chunk_id] = chunk
         if len(chunk) < size:
             return cart
+
+
+def split_code(cart: Cart) -> Cart:
+    """
+    Split the code chunk into at most 8 chunks of 65536 bytes each
+    Assumes code is all in bank 0
+    Keeps the rest of chunk ordering intact
+    """
+    codecount = len(list(_ for k, _ in cart.items() if k[1] == ChunkID.CODE))
+    if codecount > 1:
+        raise Exception("Cannot split code chunk if there are multiple code chunks")
+    if codecount == 0:
+        return cart
+    code = cart[0, ChunkID.CODE]
+    if len(code) <= 65536:
+        return cart
+    ret = {}
+    for k, v in cart.items():
+        if k[1] != ChunkID.CODE:
+            ret[k] = v
+            continue
+        for i in range((len(code) - 1) // 65536, -1, -1):
+            if len(code) <= 65536:
+                ret[i, ChunkID.CODE] = code
+                break
+            else:
+                ret[i, ChunkID.CODE] = code[:65536]
+                code = code[65536:]
+    return ret
+
+
+def join_code(cart: Cart) -> Cart:
+    """
+    Join the code chunks into a single chunk
+    Places the joined code at the where first code chunk was
+    Keeps the rest of chunk ordering intact
+    """
+    if len(list(_ for k, _ in cart.items() if k[1] == ChunkID.CODE)) <= 1:
+        return cart
+    code = b''
+    for i in range(7, -1, -1):
+        if (i, ChunkID.CODE) in cart:
+            code += cart[i, ChunkID.CODE]
+    ret = {}
+    for k, v in cart.items():
+        if k[1] != ChunkID.CODE:
+            ret[k] = v
+            continue
+        if code:
+            ret[0, ChunkID.CODE] = code
+            code = b''
+    return ret
 
 
 def write_lua(cart: Cart, file: typing.TextIO) -> int:
@@ -192,7 +255,7 @@ def data_to_code(cart: Cart):
         for e in noncodechunks:
             addr = DATACHUNK_ADDRESSES[e[1]]
             datastr = cart[e].hex()
-            loader = "i="+str(addr)+"\nfor m in string.gmatch('" + datastr + "', '%x%x') do\n  poke(i,tonumber(m,16))\n  i=i+1\nend\n"
+            loader = "i=" + str(addr) + "\nfor m in string.gmatch('" + datastr + "', '%x%x') do\n  poke(i,tonumber(m,16))\n  i=i+1\nend\n"
             code = loader + code
             del cart[e]
         cart[c] = code.encode("ascii")

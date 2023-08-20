@@ -158,7 +158,7 @@ def main():
         filepath_sliced = filepath[-30:] if len(filepath) > 30 else filepath
         filepbar.set_description(f"Reading       {filepath_sliced}")
         try:
-            cart = ticfile.read(filepath)
+            cart = ticfile.join_code(ticfile.read(filepath))
         except Exception as e:
             filepbar.write(f"Error reading {filepath}: {e}, skipping...")
             error = True
@@ -173,7 +173,7 @@ def main():
         filepbar.set_description(f"Compressing   {filepath_sliced}")
         outcart = cart.copy() if args.uncompressed else dict((k, v) if k[1] != ticfile.ChunkID.CODE else (
             (k[0], ticfile.ChunkID.CODE_ZIP), _compress(v, args.split, args.split_max, args.iterations)) for k, v in cart.items())
-        final_size = ticfile.write(outcart, outfile)
+        final_size = ticfile.write(ticfile.split_code(outcart), outfile)
         code_chunks = [c for c in cart if c[1] == ticfile.ChunkID.CODE]
         for c in code_chunks:
             code = cart[c].decode("ascii")
@@ -195,7 +195,7 @@ def main():
                     ret = abs(ret)
                 if ret < best_cost:
                     outcart[key] = bytes
-                    final_size = ticfile.write(outcart, outfile, pedantic=args.pedantic)
+                    final_size = ticfile.write(ticfile.split_code(outcart), outfile, pedantic=args.pedantic)
                     if args.print_best:
                         filepbar.write(f"-- {ret} bytes:\n{'-'*40}\n{printer.format(root, pretty=True).strip()}\n{'-'*40}")
                 return ret
