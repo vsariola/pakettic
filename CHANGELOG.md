@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Perform initial variable minification before starting optimization
 - Constant folding: constant integer expressions are evaluated by
   pakettic, in case they compresses better
-- More detailed reporting of the crunching results  
+- More detailed reporting of the crunching results
 
 ### Fixed
 
