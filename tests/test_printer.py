@@ -66,6 +66,7 @@ class TestPrinter(unittest.TestCase):
             "x='\\r'",
             "x='\\t'",
             "x='\\f'",
+            "x=1 ..2",
         ]
         for a in cases:
             with self.subTest(code=a):

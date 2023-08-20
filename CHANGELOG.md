@@ -30,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Escaping `\r` and `\f` in quoted string literals
 - `-- {` was not considered comment, even though it was not considered
   permutation block either
+- Add space between a numeral and following period when printing. For
+  example, `1 ..2` (string concatenation) should not be printed as
+  `1..2`, as LUA then parses the beginning of it as floating point
+  numeral `1.`
 
 ## [1.2.0] - 2023-04-02
 

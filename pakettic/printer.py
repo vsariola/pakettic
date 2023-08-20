@@ -11,7 +11,7 @@ def format(node: ast.Node, pretty: bool = False, no_load: bool = False) -> str:
     return Formatter(pretty=pretty, no_load=no_load).format(node)
 
 
-_hexy = re.compile('[0-9a-fxA-FXpP]').search
+_hexy = re.compile(r'[0-9a-fxA-FXpP\.]').search
 _alphaunder = re.compile('[_a-zA-Z]').search
 _alphanumunder = re.compile('[_a-zA-Z0-9]').search
 _single_quote_translation = str.maketrans({"\n": r"\n",
@@ -57,7 +57,7 @@ class Formatter:
                     # the previous token was word, and the next continues with a character that might be confused with it
                     yield ' '
                 elif type(prevtoken) is ast.Numeral and bool(_hexy(token[0])):
-                    yield ' '  # the previous token was numeral and the next starts with something that be confused with a hex
+                    yield ' '  # the previous token was numeral and the next starts with something that be confused with a hex or a decimal point
                 yield token
             elif type(token) is ast.Numeral:
                 strnumeral = str(token)
