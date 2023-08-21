@@ -1,5 +1,7 @@
 from cmath import inf
 import argparse
+import io
+import struct
 from pakettic import ast
 from glob import glob
 import os
@@ -54,11 +56,12 @@ def _parse_zopfli_level(arg: str) -> dict:
         raise argparse.ArgumentTypeError("Compression level should be an integer 0-5")
 
 
-def _compress(bytes, split, split_max, iterations):
+def _compress(bytes, split, split_max, iterations, drop_checksum=True):
     """Compress a byte string using Zopfli, dropping the check sum"""
     c = zopfli.ZopfliCompressor(zopfli.ZOPFLI_FORMAT_ZLIB, block_splitting=split,
                                 block_splitting_max=split_max, iterations=iterations)
-    return (c.compress(bytes) + c.flush())[: -4]
+    data = (c.compress(bytes) + c.flush())
+    return data[0:-4] if drop_checksum else data
 
 
 def main():
@@ -72,9 +75,11 @@ def main():
     argparser.add_argument('input', nargs='+', help='input file(s). ?, * and ** wildcards work')
     argparser.add_argument('-o', '--output', default=os.getcwd(), metavar='str', help='output file or directory')
     argparser.add_argument('-l', '--lua', action='store_const', const=True,
-                           help='output .lua carts instead of .tic carts')
+                           help='set output format as .lua cart')
     argparser.add_argument('-u', '--uncompressed', action='store_const', const=True,
-                           help='leave code chunks uncompressed, even when outputting a .tic file')
+                           help='set output format as uncompressed .tic cart')
+    argparser.add_argument('-g', '--png', action='store_const', const=True,
+                           help='set output format as .png cart')
     argparser.add_argument('-p', '--print-best', action='store_const', const=True,
                            help='pretty-print the best solution when found')
     argparser.add_argument('-c', '--chunks',
@@ -123,8 +128,8 @@ def main():
                              help='maximum number of block splittings in zopfli (0: infinite). default: based on compression level')
     args = argparser.parse_args()
 
-    if args.lua:
-        args.uncompressed = True  # Outputting LUA and compressing are mutually exclusive
+    if args.lua or args.png or args.uncompressed:
+        args.no_chunk_shuffle = True  # These formats don't gain anything from chunk shuffling
     if args.split is None:
         args.split = args.zopfli_level["split"]
     if args.split_max is None:
@@ -152,7 +157,10 @@ def main():
     for filepath in filepbar:
         cart_start_time = time.time()
         _, filename = os.path.split(os.path.splitext(filepath)[0])
-        ext = '.lua' if args.lua else '.tic'
+        if args.lua:
+            ext = '.lua'
+        else:
+            ext = '.tic'
         outfile = os.path.join(args.output, filename + '.packed' + ext) if os.path.isdir(args.output) else args.output
         original_size = os.path.getsize(filepath)
         filepath_sliced = filepath[-30:] if len(filepath) > 30 else filepath
@@ -171,7 +179,7 @@ def main():
         if args.data_to_code:
             ticfile.data_to_code(cart)
         filepbar.set_description(f"Compressing   {filepath_sliced}")
-        outcart = cart.copy() if args.uncompressed else dict((k, v) if k[1] != ticfile.ChunkID.CODE else (
+        outcart = cart.copy() if args.uncompressed or args.lua or args.png else dict((k, v) if k[1] != ticfile.ChunkID.CODE else (
             (k[0], ticfile.ChunkID.CODE_ZIP), _compress(v, args.split, args.split_max, args.iterations)) for k, v in cart.items())
         final_size = ticfile.write(ticfile.split_code(outcart), outfile)
         code_chunks = [c for c in cart if c[1] == ticfile.ChunkID.CODE]
@@ -186,16 +194,33 @@ def main():
                 nonlocal final_size
                 bytes = printer.format(root, no_load=args.no_load).encode("ascii")
                 key = c
-                if not args.uncompressed:
+                if not args.uncompressed and not args.lua and not args.png:
                     key = (c[0], ticfile.ChunkID.CODE_ZIP)
                     bytes = _compress(bytes, args.split, args.split_max, args.iterations)
-                diff = len(bytes) - len(outcart[key])
-                ret = final_size + diff - args.target_size
+                if args.png:
+                    newcart = outcart.copy()
+                    newcart[key] = bytes
+                    bytesIO = io.BytesIO()
+                    ticfile.write_tic(ticfile.split_code(newcart), bytesIO, pedantic=args.pedantic)
+                    wholecart = _compress(bytesIO.getvalue(), args.split, args.split_max, args.iterations, drop_checksum=False)
+                    bytesIOwholecart = io.BytesIO()
+                    bytesIOwholecart.write(b'\x89PNG\x0D\x0A\x1A\x0A')
+                    bytesIOwholecart.write(len(wholecart).to_bytes(4, byteorder='big'))
+                    bytesIOwholecart.write(b'caRt')
+                    bytesIOwholecart.write(wholecart)
+                    ret = len(bytesIOwholecart.getvalue())
+                else:
+                    diff = len(bytes) - len(outcart[key])
+                    ret = final_size + diff - args.target_size
                 if args.exact:
                     ret = abs(ret)
                 if ret < best_cost:
                     outcart[key] = bytes
-                    final_size = ticfile.write(ticfile.split_code(outcart), outfile, pedantic=args.pedantic)
+                    if args.png:
+                        with open(outfile, 'wb') as f:
+                            final_size = f.write(bytesIOwholecart.getvalue())
+                    else:
+                        final_size = ticfile.write(ticfile.split_code(outcart), outfile, pedantic=args.pedantic)
                     if args.print_best:
                         filepbar.write(f"-- {ret} bytes:\n{'-'*40}\n{printer.format(root, pretty=True).strip()}\n{'-'*40}")
                 return ret
