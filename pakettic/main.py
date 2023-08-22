@@ -56,14 +56,6 @@ def _parse_zopfli_level(arg: str) -> dict:
         raise argparse.ArgumentTypeError("Compression level should be an integer 0-5")
 
 
-def _compress(bytes, split, split_max, iterations, drop_checksum=True):
-    """Compress a byte string using Zopfli, dropping the check sum"""
-    c = zopfli.ZopfliCompressor(zopfli.ZOPFLI_FORMAT_ZLIB, block_splitting=split,
-                                block_splitting_max=split_max, iterations=iterations)
-    data = (c.compress(bytes) + c.flush())
-    return data[0:-4] if drop_checksum else data
-
-
 def main():
     """Main entrypoint for the command line program"""
     sys.setrecursionlimit(100000)  # TODO: find out why the parser recurses so heavily and reduce that
@@ -128,14 +120,18 @@ def main():
                              help='maximum number of block splittings in zopfli (0: infinite). default: based on compression level')
     args = argparser.parse_args()
 
-    if args.lua or args.png or args.uncompressed:
-        args.no_chunk_shuffle = True  # These formats don't gain anything from chunk shuffling
     if args.split is None:
         args.split = args.zopfli_level["split"]
     if args.split_max is None:
         args.split_max = args.zopfli_level["split_max"]
     if args.iterations is None:
         args.iterations = args.zopfli_level["iterations"]
+
+    def compress(bytes=None, drop_checksum=True):
+        c = zopfli.ZopfliCompressor(zopfli.ZOPFLI_FORMAT_ZLIB, block_splitting=args.split,
+                                    block_splitting_max=args.split_max, iterations=args.iterations)
+        data = (c.compress(bytes) + c.flush())
+        return data[0:-4] if drop_checksum else data
 
     input = []
     # use glob to find files matching wildcards
@@ -154,92 +150,99 @@ def main():
     total_optimized_size = 0
     total_start_time = time.time()
     maxpathlen = max(len(p) for p in input)
-    for filepath in filepbar:
+    for input_filepath in filepbar:
         cart_start_time = time.time()
-        _, filename = os.path.split(os.path.splitext(filepath)[0])
-        if args.lua:
-            ext = '.lua'
+        _, filename = os.path.split(os.path.splitext(input_filepath)[0])
+        if os.path.isdir(args.output):
+            output_filepath = os.path.join(args.output, filename + '.packed' + ('.lua' if args.lua else '.tic'))
         else:
-            ext = '.tic'
-        outfile = os.path.join(args.output, filename + '.packed' + ext) if os.path.isdir(args.output) else args.output
-        original_size = os.path.getsize(filepath)
-        filepath_sliced = filepath[-30:] if len(filepath) > 30 else filepath
+            output_filepath = args.output
+        original_size = os.path.getsize(input_filepath)
+        filepath_sliced = input_filepath[-30:] if len(input_filepath) > 30 else input_filepath
         filepbar.set_description(f"Reading       {filepath_sliced}")
         try:
-            cart = ticfile.join_code(ticfile.read(filepath))
+            cart = ticfile.read(input_filepath)
         except Exception as e:
-            filepbar.write(f"Error reading {filepath}: {e}, skipping...")
+            filepbar.write(f"Error reading {input_filepath}: {e}, skipping...")
             error = True
             continue
         filepbar.set_description(f"Decompressing {filepath_sliced}")
-        cart.update([((k[0], ticfile.ChunkID.CODE), zlib.decompress(v[2:], -15))
-                    for k, v in cart.items() if k[1] == ticfile.ChunkID.CODE_ZIP])  # decompress zipped chunks
+        if (0, ticfile.ChunkID.CODE_ZIP) in cart:
+            cart[(0, ticfile.ChunkID.CODE)] = zlib.decompress(cart[(0, ticfile.ChunkID.CODE_ZIP)][2:], -15)
+            del cart[(0, ticfile.ChunkID.CODE_ZIP)]
         cart[(0, ticfile.ChunkID.DEFAULT)] = b''  # add default chunk if it's missing
         cart = dict(c for i in args.chunks for c in cart.items() if c[0][1] == i)  # only include the chunks listed in args
         if args.data_to_code:
             ticfile.data_to_code(cart)
-        filepbar.set_description(f"Compressing   {filepath_sliced}")
-        outcart = cart.copy() if args.uncompressed or args.lua or args.png else dict((k, v) if k[1] != ticfile.ChunkID.CODE else (
-            (k[0], ticfile.ChunkID.CODE_ZIP), _compress(v, args.split, args.split_max, args.iterations)) for k, v in cart.items())
-        final_size = ticfile.write(ticfile.split_code(outcart), outfile)
-        code_chunks = [c for c in cart if c[1] == ticfile.ChunkID.CODE]
-        for c in code_chunks:
-            code = cart[c].decode("ascii")
-            root = parser.parse_string(code)
-            root = optimize.loads_to_funcs(root)
-            root = optimize.minify(root)
-            root = ast.Hint(root)
+        code = cart[0, ticfile.ChunkID.CODE].decode("ascii")
 
-            def _cost_func(root, best_cost):
-                nonlocal final_size
-                bytes = printer.format(root, no_load=args.no_load).encode("ascii")
-                key = c
-                if not args.uncompressed and not args.lua and not args.png:
-                    key = (c[0], ticfile.ChunkID.CODE_ZIP)
-                    bytes = _compress(bytes, args.split, args.split_max, args.iterations)
-                if args.png:
-                    newcart = outcart.copy()
-                    newcart[key] = bytes
-                    bytesIO = io.BytesIO()
-                    ticfile.write_tic(ticfile.split_code(newcart), bytesIO, pedantic=args.pedantic)
-                    wholecart = _compress(bytesIO.getvalue(), args.split, args.split_max, args.iterations, drop_checksum=False)
-                    bytesIOwholecart = io.BytesIO()
-                    bytesIOwholecart.write(b'\x89PNG\x0D\x0A\x1A\x0A')
-                    bytesIOwholecart.write(len(wholecart).to_bytes(4, byteorder='big'))
-                    bytesIOwholecart.write(b'caRt')
-                    bytesIOwholecart.write(wholecart)
-                    ret = len(bytesIOwholecart.getvalue())
-                else:
-                    diff = len(bytes) - len(outcart[key])
-                    ret = final_size + diff - args.target_size
-                if args.exact:
-                    ret = abs(ret)
-                if ret < best_cost:
-                    outcart[key] = bytes
-                    if args.png:
-                        with open(outfile, 'wb') as f:
-                            final_size = f.write(bytesIOwholecart.getvalue())
-                    else:
-                        final_size = ticfile.write(ticfile.split_code(outcart), outfile, pedantic=args.pedantic)
-                    if args.print_best:
-                        filepbar.write(f"-- {ret} bytes:\n{'-'*40}\n{printer.format(root, pretty=True).strip()}\n{'-'*40}")
-                return ret
-            _cost_func(root, inf)
-            minified_size = final_size  # current final_size is the size after minification
-            if args.algorithm == 'lahc':
-                root = optimize.lahc(root, steps=args.steps, cost_func=_cost_func,
-                                     list_length=args.lahc_history, init_margin=args.margin, seed=args.seed)
-            elif args.algorithm == 'dlas':
-                root = optimize.dlas(root, steps=args.steps, cost_func=_cost_func,
-                                     list_length=args.dlas_history, init_margin=args.margin, seed=args.seed)
+        filepbar.set_description(f"Compressing   {filepath_sliced}")
+        if not args.uncompressed and not args.lua and not args.png:
+            bytes = compress(cart[0, ticfile.ChunkID.CODE])
+            cart = dict(((0, ticfile.ChunkID.CODE_ZIP), bytes) if i[0][1] == ticfile.ChunkID.CODE else i for i in cart.items())
+        with (io.open(output_filepath, "w", newline='\n') if args.lua else io.open(output_filepath, "wb")) as file:
+            if args.lua:
+                final_size = ticfile.write_lua(cart, file)
             else:
-                root = optimize.anneal(root, steps=args.steps, cost_func=_cost_func,
-                                       start_temp=args.start_temp, end_temp=args.end_temp, seed=args.seed)
+                if args.png:
+                    c = lambda b: compress(b, drop_checksum=False)
+                else:
+                    c = None
+                final_size = ticfile.write_tic(cart, file, pedantic=args.pedantic, compress=c)
+
+        root = parser.parse_string(code)
+        root = optimize.loads_to_funcs(root)
+        root = optimize.minify(root)
+        root = ast.Hint(root)
+
+        def _cost_func(root, best_cost):
+            nonlocal final_size
+            bytes = printer.format(root, no_load=args.no_load).encode("ascii")
+            chunkID = ticfile.ChunkID.CODE
+            if not args.uncompressed and not args.lua and not args.png:
+                bytes = compress(bytes)
+                chunkID = ticfile.ChunkID.CODE_ZIP
+            if args.png:
+                newcart = cart.copy()
+                newcart[0, ticfile.ChunkID.CODE] = bytes
+                bytesIO = io.BytesIO()
+                ticfile.write_tic(newcart, bytesIO, pedantic=args.pedantic, compress=lambda b: compress(b, drop_checksum=False))
+                ret = len(bytesIO.getvalue())
+            else:
+                chunkedlength = lambda l: l + (l - 1) // 65536 * 4 + 4  # length of code after splitted to chunks
+                diff = chunkedlength(len(bytes)) - chunkedlength(len(cart[0, chunkID]))
+                ret = final_size + diff
+            ret -= args.target_size
+            if args.exact:
+                ret = abs(ret)
+            if ret < best_cost:
+                cart[0, chunkID] = bytes
+                with (io.open(output_filepath, "w", newline='\n') if args.lua else io.open(output_filepath, "wb")) as file:
+                    if args.lua:
+                        final_size = ticfile.write_lua(cart, file)
+                    elif args.png:
+                        final_size = file.write(bytesIO.getvalue())
+                    else:
+                        final_size = ticfile.write_tic(cart, file, pedantic=args.pedantic)
+                if args.print_best:
+                    filepbar.write(f"-- {ret} bytes:\n{'-'*40}\n{printer.format(root, pretty=True).strip()}\n{'-'*40}")
+            return ret
+        _cost_func(root, inf)
+        minified_size = final_size  # current final_size is the size after minification
+        if args.algorithm == 'lahc':
+            root = optimize.lahc(root, steps=args.steps, cost_func=_cost_func,
+                                 list_length=args.lahc_history, init_margin=args.margin, seed=args.seed)
+        elif args.algorithm == 'dlas':
+            root = optimize.dlas(root, steps=args.steps, cost_func=_cost_func,
+                                 list_length=args.dlas_history, init_margin=args.margin, seed=args.seed)
+        else:
+            root = optimize.anneal(root, steps=args.steps, cost_func=_cost_func,
+                                   start_temp=args.start_temp, end_temp=args.end_temp, seed=args.seed)
         total_original_size += original_size
         total_optimized_size += final_size
         total_minified_size += minified_size
         cart_time_str = '.'.join(str(datetime.timedelta(seconds=int(time.time() - cart_start_time))).split(':'))
-        filepbar.write(f"{filepath.ljust(maxpathlen)} Time:{cart_time_str} Orig:{original_size:<5} Min:{minified_size:<5} Pack:{final_size:<5}")
+        filepbar.write(f"{input_filepath.ljust(maxpathlen)} Time:{cart_time_str} Orig:{original_size:<5} Min:{minified_size:<5} Pack:{final_size:<5}")
     if len(input) > 1:
         total_time_str = str(datetime.timedelta(seconds=int(time.time() - total_start_time)))
         print("-" * 80 + f"\n{'Totals'.ljust(maxpathlen)} Time:{total_time_str} Orig:{total_original_size:<5} Min:{total_minified_size:<5} Pack:{total_optimized_size:<5}")

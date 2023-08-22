@@ -2,6 +2,7 @@ import io
 from lib2to3.pgen2.token import SLASH
 import os
 import struct
+import zlib
 import pyparsing as pp
 from typing import ByteString
 from enum import IntEnum
@@ -47,7 +48,7 @@ DATACHUNK_ADDRESSES = {
 Cart = dict[tuple[int, ChunkID], ByteString]
 
 
-def write_tic(cart: Cart, file: typing.BinaryIO, pedantic=False) -> int:
+def write_tic(cart: Cart, file: typing.BinaryIO, pedantic=False, compress=None) -> int:
     """
     Write a .tic cart to a file
         Parameters:
@@ -56,6 +57,14 @@ def write_tic(cart: Cart, file: typing.BinaryIO, pedantic=False) -> int:
         Returns:
             filesize (int): Size of the just-written cart on disk
     """
+    if compress:
+        bio = io.BytesIO()
+        write_tic(cart, bio, pedantic, compress=None)
+        compressed = compress(bio.getvalue())
+        return file.write(b'\x89PNG\x0D\x0A\x1A\x0A') + \
+            file.write(len(compressed).to_bytes(4, byteorder='big')) + \
+            file.write(b'caRt') + \
+            file.write(compressed)
     total_size = 0
     for i, bank_chunk in enumerate(cart):
         # if this the last chunk and it's a DEFAULT chunk
@@ -63,22 +72,25 @@ def write_tic(cart: Cart, file: typing.BinaryIO, pedantic=False) -> int:
         if not pedantic and chunk == ChunkID.DEFAULT and i == len(cart) - 1:
             total_size += file.write(struct.pack("<B", ChunkID.DEFAULT))
             break
-        packed_bank_chunk = (bank << 5) + (chunk & 31)
         data = cart[bank_chunk].rstrip(b'\0') if chunk != ChunkID.CODE_ZIP and chunk != ChunkID.CODE else cart[bank_chunk]
         if chunk != ChunkID.DEFAULT and len(data) == 0:
             continue
         size = len(data)
+        # if the chunk is CODE or BINARY, split it into 64K chunks
         if (chunk == ChunkID.CODE or chunk == ChunkID.BINARY):
-            if size == 65536:
-                size = 0
-            elif size > 65536:
-                raise Exception(f"{chunk.name} chunk in bank {bank} is {size} bytes, maximum size 65536 bytes")
+            if bank != 0:
+                raise Exception(f"{chunk.name} chunk must be in bank 0")
+            if size > 524288:
+                raise Exception(f"{chunk.name} chunk is {size} bytes, maximum size 524288 bytes (8 banks of 65536 bytes)")
+            for i in range((size - 1) // 65536, -1, -1):
+                if len(data) <= 65536:
+                    total_size += _write_chunk(file, chunk, i, data)
+                    break
+                else:
+                    total_size += _write_chunk(file, chunk, i, data[:65536])
+                    data = data[65536:]
         else:
-            if size > 65535:
-                raise Exception(f"{chunk.name} chunk in bank {bank} is {size} bytes, maximum size 65535 bytes")
-        header = struct.pack("<BHB", packed_bank_chunk, size, 0)  # the last byte is reserved
-        total_size += file.write(header)
-        total_size += file.write(data)
+            total_size += _write_chunk(file, chunk, bank, data)
     return total_size
 
 
@@ -94,7 +106,7 @@ def read_tic(file: typing.BinaryIO) -> Cart:
     while True:
         bank_and_chunk_bytes = file.read(1)  # byte, with 3 highest bits bank and 5 lowest bits chunk type
         if len(bank_and_chunk_bytes) == 0:
-            return cart
+            break
         bank = bank_and_chunk_bytes[0] >> 5
         chunk_id = ChunkID(bank_and_chunk_bytes[0] & 31)
         header = file.read(3)  # sizecoding hackers usually end CHUNK_DEFAULT abruptly without header
@@ -104,58 +116,23 @@ def read_tic(file: typing.BinaryIO) -> Cart:
         chunk = file.read(size)
         cart[bank, chunk_id] = chunk
         if len(chunk) < size:
-            return cart
-
-
-def split_code(cart: Cart) -> Cart:
-    """
-    Split the code chunk into at most 8 chunks of 65536 bytes each
-    Assumes code is all in bank 0
-    Keeps the rest of chunk ordering intact
-    """
-    codecount = len(list(_ for k, _ in cart.items() if k[1] == ChunkID.CODE))
-    if codecount > 1:
-        raise Exception("Cannot split code chunk if there are multiple code chunks")
-    if codecount == 0:
-        return cart
-    code = cart[0, ChunkID.CODE]
-    if len(code) <= 65536:
-        return cart
+            break
+    # join the code and binary chunks into a single chunk
+    code = b''.join(cart[i, ChunkID.CODE] for i in range(7, -1, -1) if (i, ChunkID.CODE) in cart)
+    binary = b''.join(cart[i, ChunkID.BINARY] for i in range(7, -1, -1) if (i, ChunkID.BINARY) in cart)
+    # filter out the code chunks, except the bank 0 one which is the joined code
     ret = {}
     for k, v in cart.items():
-        if k[1] != ChunkID.CODE:
+        if k[1] == ChunkID.CODE:
+            if k[0] != 0:
+                continue
+            ret[k] = code
+        elif k[1] == ChunkID.BINARY:
+            if k[0] != 0:
+                continue
+            ret[k] = binary
+        else:
             ret[k] = v
-            continue
-        for i in range((len(code) - 1) // 65536, -1, -1):
-            if len(code) <= 65536:
-                ret[i, ChunkID.CODE] = code
-                break
-            else:
-                ret[i, ChunkID.CODE] = code[:65536]
-                code = code[65536:]
-    return ret
-
-
-def join_code(cart: Cart) -> Cart:
-    """
-    Join the code chunks into a single chunk
-    Places the joined code at the where first code chunk was
-    Keeps the rest of chunk ordering intact
-    """
-    if len(list(_ for k, _ in cart.items() if k[1] == ChunkID.CODE)) <= 1:
-        return cart
-    code = b''
-    for i in range(7, -1, -1):
-        if (i, ChunkID.CODE) in cart:
-            code += cart[i, ChunkID.CODE]
-    ret = {}
-    for k, v in cart.items():
-        if k[1] != ChunkID.CODE:
-            ret[k] = v
-            continue
-        if code:
-            ret[0, ChunkID.CODE] = code
-            code = b''
     return ret
 
 
@@ -259,6 +236,31 @@ def data_to_code(cart: Cart):
             code = loader + code
             del cart[e]
         cart[c] = code.encode("ascii")
+
+
+def _write_chunk(file: typing.BinaryIO, chunk_id: ChunkID, bank: int, data: ByteString) -> int:
+    """
+    Write a chunk to a file
+        Parameters:
+            file (BinaryIO): File to which write the chunk
+            chunk_id (ChunkID): Chunk type
+            bank (int): Bank number
+            data (ByteString): Chunk data
+        Returns:
+            filesize (int): Size of the just-written chunk on disk
+    """
+    size = len(data)
+    if chunk_id == ChunkID.CODE or chunk_id == ChunkID.BINARY:
+        if size > 65536:
+            raise Exception(f"{chunk_id.name} chunk is {size} bytes, maximum size 65536 bytes")
+        if size == 65536:
+            size = 0
+    else:
+        if size > 65535:
+            raise Exception(f"{chunk_id.name} chunk is {size} bytes, maximum size 65535 bytes")
+    packed_bank_chunk = (bank << 5) + (chunk_id & 31)
+    header = struct.pack("<BHB", packed_bank_chunk, size, 0)  # the last byte is reserved
+    return file.write(header) + file.write(data)
 
 
 _LANGLE, _RANGLE, _SLASH, _COLON = map(
