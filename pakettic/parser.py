@@ -192,7 +192,7 @@ expliteral = nil | false | true | Numeral | LiteralString | ellipsis | functiond
 altexp = expliteral + (pp.Literal('--|').suppress() - expliteral)[0, ...]
 altexp.set_parse_action(alt)
 powerexp = pp.Forward()
-unaryexp = pp.oneOf('not # - ~')[0, ...] + powerexp
+unaryexp = pp.Regex(r"not|#|-(?!-)|~")[0, ...] + powerexp
 unaryexp.set_parse_action(unaryAction)
 powerexp <<= altexp + (pp.Literal('^').suppress() - unaryexp)[0, 1]
 powerexp.set_parse_action(lambda t: ast.BinOp(left=t[0], op="^", right=t[1]) if len(t) > 1 else t[0])
@@ -200,7 +200,7 @@ exp <<= pp.infixNotation(
     unaryexp,
     [
         (pp.oneOf('* / // %'), 2, pp.OpAssoc.LEFT, left_assoc),
-        (pp.oneOf('+ -'), 2, pp.OpAssoc.LEFT, left_assoc),
+        (pp.Regex(r"[+]|-(?!-)"), 2, pp.OpAssoc.LEFT, left_assoc),
         ('..', 2, pp.OpAssoc.LEFT, left_assoc),
         (pp.oneOf('<< >>'), 2, pp.OpAssoc.LEFT, left_assoc),
         ('&', 2, pp.OpAssoc.LEFT, left_assoc),

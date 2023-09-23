@@ -1,3 +1,4 @@
+import pyparsing
 import unittest
 from pakettic import parser
 from pakettic import ast
@@ -305,10 +306,20 @@ class TestMagicComments(unittest.TestCase):
         expected = Block([Perm([Label("foo"), Label("bar")], allow_reorder=True)])
         self.assertEqual(got, expected)
 
+    def test_reordering_after_assignment(self):
+        got = parser.parse_string('n=n+n\n--{\nf()\n--}')
+        unittest.util._MAX_LENGTH=2000
+        expected = Block([Assign([Name(id='n')], [BinOp(Name(id='n'), op='+', right=Name(id='n'))]), Perm([Call(Name(id='f'), [])], allow_reorder=True)])
+        self.assertEqual(got, expected)
+
     def test_not_reordering(self):
         got = parser.parse_string('-- { this should be just a comment --}')
         expected = Block([])
         self.assertEqual(got, expected)
+
+    def test_reordering_not_parsed_as_double_negation(self):
+        self.assertRaises(pyparsing.exceptions.ParseException,
+            parser.parse_string, 'f(--{})')
 
     def test_disabled_reordering(self):
         got = parser.parse_string('--{!\n::foo::\n::bar::\n--}')
