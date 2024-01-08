@@ -297,7 +297,9 @@ def _(node: ast.Func, fmt: Formatter):
 @ _traverse.register
 def _(node: ast.Index, fmt: Formatter):
     require_parentheses = type(node.obj) is not ast.Name and \
-        type(node.obj) is not ast.Index and type(node.obj) is not ast.MethodCall
+        type(node.obj) is not ast.Index and \
+        type(node.obj) is not ast.MethodCall and \
+        type(node.obj) is not ast.Call
     if require_parentheses:
         yield '('
     yield from _traverse(node.obj, fmt)

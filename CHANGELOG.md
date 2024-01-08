@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Parentheses are not needed when indexing calls e.g. `(a()).foo` can be
+  `a().foo`
 - Parentheses are needed in string literal method calls e.g. in `("abc"):sub(2)`
 - Parse error when `--{` looks like subtraction followed negated table
   constant
