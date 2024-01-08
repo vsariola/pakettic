@@ -352,7 +352,15 @@ def _(node: ast.Call, fmt: Formatter):
 
 @ _traverse.register
 def _(node: ast.MethodCall, fmt: Formatter):
+    require_parentheses = type(node.value) is not ast.Name and \
+        type(node.value) is not ast.Index and \
+        type(node.value) is not ast.MethodCall and \
+        type(node.value) is not ast.Call
+    if require_parentheses:
+        yield '('
     yield from _traverse(node.value, fmt)
+    if require_parentheses:
+        yield ')'
     yield ':'
     yield from _traverse(node.method, fmt)
     yield '('

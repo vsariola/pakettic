@@ -67,6 +67,11 @@ class TestPrinter(unittest.TestCase):
             "x='\\t'",
             "x='\\f'",
             "x=1 ..2",
+            "('a'):foo()",
+            "('a'..'b'):sub(2)",
+            "a[5]:foo()",
+            "a():foo()",
+            "a:foo()",
         ]
         for a in cases:
             with self.subTest(code=a):
