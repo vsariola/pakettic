@@ -255,7 +255,7 @@ def data_to_code(cart: Cart):
         for e in noncodechunks:
             addr = DATACHUNK_ADDRESSES[e[1]]
             datastr = cart[e].hex()
-            loader = "i=" + str(addr) + "\nfor m in string.gmatch('" + datastr + "', '%x%x') do\n  poke(i,tonumber(m,16))\n  i=i+1\nend\n"
+            loader = "i=" + str(addr) + "\nfor m in ('" + datastr + "'):gmatch('%x%x') do\n  poke(i,tonumber(m,16))\n  i=i+1\nend\n"
             code = loader + code
             del cart[e]
         cart[c] = code.encode("ascii")
