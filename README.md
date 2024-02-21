@@ -197,11 +197,11 @@ the unpacked intro: the code will not be included in the packed cart.
 - Similarly, different optimization heuristics produce slightly
   different results. Try different heuristics e.g. with `-alahc`,
   `-adlas` or `-aanneal`.
-- To avoid re-optimizing all the expressions every time, do a long
-  optimization run, study the results and change your expressions to the
-  forms that pack well. Set the number of steps with `-s`. Use
-  command-line argument `-p` to always print a reasonably readable
-  version of the best solution when one is found.
+- To avoid re-optimizing all the expressions every time, do a long optimization
+  run, study the results and change your expressions to the forms that pack
+  well. Set the number of steps with `-s`; `-s0` iterates forever. Intermediate
+  results are saved. Use command-line argument `-p` to always print a reasonably
+  readable version of the best solution when one is found.
 - By default, pakettic only includes CODE and DEFAULT chunks. DEFAULT
   indicates that before loading the cart, TIC-80 loads the default cart,
   setting default palette, waveforms etc. If you don't need the default
