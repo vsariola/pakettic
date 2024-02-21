@@ -95,7 +95,7 @@ def main():
                           choices=["lahc", "dlas", "anneal"],
                           default="dlas")
     optgroup.add_argument('-s', '--steps', type=int, default=10000, metavar='int',
-                          help='number of steps in the optimization algorithm. default: %(default)d')
+                          help='number of steps in the optimization algorithm. 0 = iterate forever (intermediate results saved). default: %(default)d')
     optgroup.add_argument('-H', '--lahc-history', type=int, default=500, metavar='int',
                           help='history length in late acceptance hill climbing. default: %(default)d')
     optgroup.add_argument('-D', '--dlas-history', type=int, default=5, metavar='int',

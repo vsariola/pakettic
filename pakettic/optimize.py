@@ -76,7 +76,7 @@ def minify(root: ast.Node) -> ast.Node:
     """
     Perform initial minification of the variable names
         Parameters:
-            root (ast.Node): Root of the abstract syntax tree            
+            root (ast.Node): Root of the abstract syntax tree
         Returns:
             new_root (ast.Node): Root of the new, mutated abstract syntax tree
     """
@@ -283,7 +283,7 @@ def anneal(state: Any, cost_func: Callable[[Any, int], int], steps: int, start_t
     best_cost = current_cost
     best = state
     r = random.Random(seed)  # deterministic seed, to have deterministic results
-    bar = tqdm.tqdm(range(steps), position=1, leave=False)
+    bar = tqdm.tqdm(_stepsGenerator(steps), position=1, leave=False)
     for i in bar:
         alpha = i / (steps - 1)
         temp = math.exp((1 - alpha) * math.log(start_temp) + alpha * math.log(end_temp))
@@ -320,7 +320,7 @@ def lahc(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_leng
     history = [best_cost + init_margin] * list_length
     best = state
     r = random.Random(seed)  # deterministic seed, to have deterministic results
-    bar = tqdm.tqdm(range(steps), position=1, leave=False)
+    bar = tqdm.tqdm(_stepsGenerator(steps), position=1, leave=False)
     for i in bar:
         candidate = mutate_func(state, r)
         cand_cost = cost_func(candidate, best_cost)
@@ -360,7 +360,7 @@ def dlas(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_leng
     N = list_length
     best = state
     r = random.Random(seed)  # deterministic seed, to have deterministic results
-    bar = tqdm.tqdm(range(steps), position=1, leave=False)
+    bar = tqdm.tqdm(_stepsGenerator(steps), position=1, leave=False)
     for i in bar:
         prev_cost = current_cost
         candidate = mutate_func(state, r)
@@ -385,6 +385,16 @@ def dlas(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_leng
         if best_cost <= 0:
             break
     return best
+
+
+def _stepsGenerator(steps: int):
+    """
+    Generator for the steps of the optimization algorithms, taking into account that 0 means infinite steps
+    """
+    if steps == 0:
+        return itertools.count()
+    else:
+        return range(steps)
 
 
 def apply_trans(node: ast.Node, trans: Callable[[ast.Node], ast.Node]) -> ast.Node:
