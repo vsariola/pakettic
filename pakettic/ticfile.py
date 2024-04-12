@@ -302,7 +302,7 @@ def read(filepath: str) -> Cart:
     """
     _, ext = os.path.splitext(filepath)
     if ext == '.lua':
-        with io.open(filepath, "r") as file:
+        with io.open(filepath, "r", encoding="latin-1") as file:
             return read_lua(file)
     else:
         with io.open(filepath, "rb") as file:
