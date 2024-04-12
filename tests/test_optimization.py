@@ -39,19 +39,31 @@ class TestOptimization(unittest.TestCase):
             'f=function(x) end',
             'debug()',
         ]
-        for a in cases:
-            with self.subTest(parsed=a):
-                try:
-                    root = parser.parse_string(a)
+        algorithms = [
+            'anneal',
+            'lahc',
+            'dlas',
+        ]
+        for code in cases:
+            for alg in algorithms:
+                with self.subTest(code=code, alg=alg):
+                    try:
+                        root = parser.parse_string(code)
 
-                    def cost_func(root_data, _):
-                        root, _ = root_data
-                        # slightly more interesting cost function than just string length, so
-                        # that we see some optimization happening even with these small carts
-                        printed = printer.format(root)
-                        return sum(bytes(printed, 'ascii'))
-                    opt_root = optimize.dlas((root, None), steps=100, list_length=5, init_margin=0, seed=0, cost_func=cost_func)
-                    printed = printer.format(opt_root)
-                    self.assertGreater(len(printed), 0)
-                except Exception as err:
-                    self.fail(err)
+                        def cost_func(root_data, _):
+                            root, _ = root_data
+                            # slightly more interesting cost function than just string length, so
+                            # that we see some optimization happening even with these small carts
+                            printed = printer.format(root)
+                            return sum(bytes(printed, 'ascii'))
+                        if alg == 'lahc':
+                            opt_root = optimize.lahc((root, None), steps=100, list_length=50, init_margin=0, seed=0, cost_func=cost_func)
+                        elif alg == 'dlas':
+                            opt_root = optimize.dlas((root, None), steps=100, list_length=5, init_margin=0, seed=0, cost_func=cost_func)
+                        else:
+                            opt_root = optimize.anneal((root, None), steps=100, start_temp=1, end_temp=0.1, seed=0, cost_func=cost_func)
+
+                        printed = printer.format(opt_root)
+                        self.assertGreater(len(printed), 0)
+                    except Exception as err:
+                        self.fail(err)
