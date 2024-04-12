@@ -107,19 +107,21 @@ def minify(root: ast.Node) -> ast.Node:
     return new_root
 
 
-def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
+def mutate(root_order: tuple[ast.Node, list], rand: random.Random) -> tuple[ast.Node, list]:
     """
     Mutates an abstract syntax tree by making small modification to it,
     e.g. flipping binary operators or changing variable names
         Parameters:
-            root (ast.Node): Root of the abstract syntax tree
+            root_order (tuple[ast.Node,list]): First item is the root of the abstract syntax tree, second item the chunk order in cart (can be nil if chunk shuffling not wanted)
             rand (random.Random): Random number generator to use
         Returns:
             new_root (ast.Node): Root of the new, mutated abstract syntax tree
     """
-    new_root = pickle.loads(pickle.dumps(root))  # pickling/unpickling is faster than deepcopy
+    root, order = root_order
+    # pickling/unpickling is faster than deepcopy
+    new_root = pickle.loads(pickle.dumps(root))
+    new_order = order.copy() if order is not None else None
     mutations = []
-
     used_names = set()
     used_labels = set()
 
@@ -240,11 +242,21 @@ def mutate(root: ast.Node, rand: random.Random) -> ast.Node:
             visit(new_root, _repl)
         return _mut
     used_labels = sorted(used_labels)
-    mutations.extend((label_repl(a, b) for a in used_labels for b in _LOWERS if a != b))
+    mutations.extend((label_repl(a, b)
+                     for a in used_labels for b in _LOWERS if a != b))
+
+    if new_order is not None and len(new_order) > 0:
+        def chunk_swap(i, j: int):
+            def _mut():
+                new_order[i], new_order[j] = new_order[j], new_order[i]
+            return _mut
+        mutations.extend(chunk_swap(i, j) for i, _ in enumerate(
+            new_order) for j, _ in enumerate(new_order) if j > i)
+
     if len(mutations) > 0:
         mutation = rand.choice(mutations)
         mutation()
-    return new_root
+    return new_root, new_order
 
 
 def replace_node(parent: ast.Node, attr: str, node: ast.Node, old: ast.Node):

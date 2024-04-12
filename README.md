@@ -181,12 +181,6 @@ the unpacked intro: the code will not be included in the packed cart.
 
 ## Tips for command line arguments
 
-- If pakettic complains about CODE_ZIP chunk size, the code is just too
-  big after compression. In TIC-80, CODE_ZIP chunks do not support
-  multiple banks (and likely never will, as the feature is already
-  deprecated), and thus are unfortunately limited to 65535 bytes.
-  `--uncompressed` is a temporary fix, but code will be uncompressed and
-  thus the size much larger.
 - The Zopfli compression level can be set with `-z<level>`, with level
   ranging from 0 to 5. When developing, start with `-z0` for fast
   optimization, and only increase when necessary e.g. when you are just
@@ -207,19 +201,25 @@ the unpacked intro: the code will not be included in the packed cart.
   setting default palette, waveforms etc. If you don't need the default
   values (e.g. you set the palette yourself), save one byte by only
   including CODE chunk in the cart: `-ccode`
-- Working on a tweet-cart? Use `-l` to output LUA carts, which are
-  uncompressed. The optimization algorithm then just optimizes the
-  uncompressed size of the code.
+- Working on a tweet-cart? Use `-flua` to output LUA carts, which are
+  uncompressed. The optimization algorithm then just optimizes the uncompressed
+  size of the code.
 - If the packed cart is missing sprites, music, map etc., try adding
   `-call` (or something more specific) to include necessary chunks.
-- Do you want to use the TIC-80 sprites or the tracker, but don't like
-  the fact that the data chunks are uncompressed? Use `-d` to have
-  pakettic automatically convert all data chunks into hexadecimal
-  strings in the code, along with a small stub placed at the beginning
-  of the code that interprets the string and loads the data at correct
-  address. For example,
-  `-d -cCODE,MUSIC,PATTERNS,WAVEFORM,SAMPLES,DEFAULT` would include the
-  necessary chunks for the music.
+- Do you want to use the TIC-80 sprites or the tracker, but don't like the fact
+  that the data chunks are uncompressed? Is your code longer than 65536
+  characters? Use `-fpng` to output "fake" PNG-like carts, which TIC-80 detects
+  as PNGs based on their headers and loads the cart from a `caRt` chunk, which
+  contains a TIC-80 cart, but this time the entire cart is compressed. ~ 20
+  bytes of additional headers are needed to fool TIC-80, so this is not
+  recommended for very tiny intros. You need to spesify which data chunks should
+  be kept. For example, `-fpng -cCODE,MUSIC,PATTERNS,WAVEFORM,SAMPLES,DEFAULT`
+  would include the necessary chunks for the music. PNG-like carts require
+  TIC-80 v1.1.2729 or newer.
+- Alternative way to use data chunks is to use `-d` to have pakettic
+  automatically convert all data chunks into hexadecimal strings in the code,
+  along with a small stub placed at the beginning of the code that interprets
+  the string and loads the data at correct address.
 
 ## Known issues
 

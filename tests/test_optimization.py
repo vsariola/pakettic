@@ -44,12 +44,13 @@ class TestOptimization(unittest.TestCase):
                 try:
                     root = parser.parse_string(a)
 
-                    def cost_func(root, _):
+                    def cost_func(root_data, _):
+                        root, _ = root_data
                         # slightly more interesting cost function than just string length, so
                         # that we see some optimization happening even with these small carts
                         printed = printer.format(root)
                         return sum(bytes(printed, 'ascii'))
-                    opt_root = optimize.dlas(root, steps=100, list_length=5, init_margin=0, seed=0, cost_func=cost_func)
+                    opt_root = optimize.dlas((root, None), steps=100, list_length=5, init_margin=0, seed=0, cost_func=cost_func)
                     printed = printer.format(opt_root)
                     self.assertGreater(len(printed), 0)
                 except Exception as err:
