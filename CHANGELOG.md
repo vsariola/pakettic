@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Multiprocessing. When obtaining a candidate solution, previously the candidate
+  was computed by mutating the state from time t-1. Now the candidate is created
+  by mutating the state from time t-N. This means that at any given time, we can
+  be computing N different mutations & their costs in parallel. This is
+  implemented using a queue of asynchronous tasks, where there is N elements.
+  New candidates are popped from the left, while states to be mutated placed to
+  the right. Parameter `-q` controls the queue length and `-P` the number of
+  parallel processes in a pool used to complete the tasks. `-q1 -P1` is
+  identical to the old behavior.
 - Reading PNG-carts and writing fake PNG-like carts. The advantage of PNG-like
   carts is that all data chunks can be compressed too, but additional 16-bytes
   of headers are needed.

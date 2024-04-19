@@ -181,6 +181,10 @@ the unpacked intro: the code will not be included in the packed cart.
 
 ## Tips for command line arguments
 
+- If you have a CPU with many logical processors and want to max out your CPU
+  usage, you can increase the processing queue length with `-q`. You should
+  usually use `-q N` where N is the number of logical processors. Too high queue
+  length hurts the convergence rate. Defaults to 12.
 - The Zopfli compression level can be set with `-z<level>`, with level
   ranging from 0 to 5. When developing, start with `-z0` for fast
   optimization, and only increase when necessary e.g. when you are just

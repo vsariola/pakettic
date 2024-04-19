@@ -89,13 +89,42 @@ def write_tic(data: list[Chunk], pedantic: bool, compress: Callable[[bytes], byt
         if chunk != ChunkID.DEFAULT and len(bytes) == 0:
             continue
         _write_tic_chunk(databytes, chunk, bank, bytes)
-    if compress is not None:
-        def ret(code):
-            compressed = compress(code)[0:-4]
-            return len(compressed)+4+len(databytes.getvalue()), lambda file: _write_tic_chunk(file, ChunkID.CODE_ZIP, 0, compressed) + file.write(databytes.getvalue())
-        return ret
-    else:
-        return lambda code: (_codelen(code) + len(databytes.getvalue()), lambda file: _write_tic_code(file, code) + file.write(databytes.getvalue()))
+    return _TicWriter(compress, databytes.getvalue())
+
+
+# These used to be lambdas with closures BUT lambdas could not be pickled for
+# multiprocessing so had to do like this. The multiprocess library uses dill
+# instead of pickle, which can serialize lambdas, but it's not a standard
+# library and dill was slower than pickle
+
+@dataclass
+class _TicWriter:
+    compress: Callable[[bytes], bytes]
+    data: bytes
+
+    def __call__(self, code: bytes):
+        if self.compress is not None:
+            compressed = self.compress(code)[0:-4]
+            return len(compressed)+4+len(self.data), _TicCompressedOutput(compressed, self.data)
+        return _codelen(code) + len(self.data), _TicUncompressedOutput(code, self.data)
+
+
+@dataclass
+class _TicCompressedOutput:
+    compressed: bytes
+    data: bytes
+
+    def __call__(self, file: typing.BinaryIO) -> int:
+        return _write_tic_chunk(file, ChunkID.CODE_ZIP, 0, self.compressed) + file.write(self.data)
+
+
+@dataclass
+class _TicUncompressedOutput:
+    code: bytes
+    data: bytes
+
+    def __call__(self, file: typing.BinaryIO) -> int:
+        return _write_tic_code(file, self.code) + file.write(self.data)
 
 
 def _codelen(code: bytes) -> int:
@@ -193,17 +222,31 @@ def write_png(data: list[Chunk], pedantic: bool, compress: Callable[[bytes], byt
     """
     # we don't want compress the code chunk when writing the inner cart because the whole cart will be compressed
     inner_writer = write_tic(data, pedantic, compress=None)
+    return _PngWriter(inner_writer, compress)
 
-    def ret(code: bytes):
+
+@dataclass
+class _PngWriter:
+    inner_writer: Callable[[typing.BinaryIO], int]
+    compress: Callable[[bytes], bytes]
+
+    def __call__(self, code: bytes):
         bio = io.BytesIO()
-        size, finish = inner_writer(code)
+        size, finish = self.inner_writer(code)
         assert finish(bio) == size
-        compressed = compress(bio.getvalue())
-        return len(compressed)+16, lambda file: file.write(b'\x89PNG\x0D\x0A\x1A\x0A') + \
-            file.write(len(compressed).to_bytes(4, byteorder='big')) + \
+        compressed = self.compress(bio.getvalue())
+        return len(compressed)+16, _PngOutput(compressed)
+
+
+@dataclass
+class _PngOutput:
+    compressed: bytes
+
+    def __call__(self, file: typing.BinaryIO) -> int:
+        return file.write(b'\x89PNG\x0D\x0A\x1A\x0A') + \
+            file.write(len(self.compressed).to_bytes(4, byteorder='big')) + \
             file.write(b'caRt') + \
-            file.write(compressed)
-    return ret
+            file.write(self.compressed)
 
 
 def read_png(file: typing.BinaryIO) -> Cart:
@@ -259,7 +302,24 @@ def write_lua(data: list[Chunk]) -> Writer:
                 hex = ''.join([c[1] + c[0] for c in zip(hex[::2], hex[1::2])])
             datafile.write(f'\n-- {i:03d}:{hex}'.encode('latin-1'))
         datafile.write(f'\n-- </{tag}>\n'.encode('latin-1'))
-    return lambda code: (len(code) + len(datafile.getvalue()), lambda file: file.write(code) + file.write(datafile.getvalue()))
+    return _LuaWriter(datafile.getvalue())
+
+
+@dataclass
+class _LuaWriter:
+    data: bytes
+
+    def __call__(self, code: bytes):
+        return len(code) + len(self.data), _LuaOutput(code, self.data)
+
+
+@dataclass
+class _LuaOutput:
+    code: bytes
+    data: bytes
+
+    def __call__(self, file: typing.BinaryIO) -> int:
+        return file.write(self.code) + file.write(self.data)
 
 
 def read_lua(file: typing.TextIO) -> Cart:

@@ -1,14 +1,16 @@
-from cmath import inf
-from functools import singledispatch
+from collections import deque
+from functools import singledispatch, wraps
 import inspect
 import itertools
 import math
 import pickle
+import signal
 import random
-from typing import Any, Callable, Optional, Union, get_args, get_origin, get_type_hints
+from typing import Any, Callable, Optional, get_args, get_origin, get_type_hints
 import tqdm
 from pakettic import ast, parser
-from dataclasses import replace
+from dataclasses import dataclass, replace
+from multiprocessing import Pool
 
 
 def _toBase26(num):
@@ -117,10 +119,10 @@ def mutate(root_order: tuple[ast.Node, list], rand: random.Random) -> tuple[ast.
         Returns:
             new_root (ast.Node): Root of the new, mutated abstract syntax tree
     """
-    root, order = root_order
+    new_root, new_order = root_order
     # pickling/unpickling is faster than deepcopy
-    new_root = pickle.loads(pickle.dumps(root))
-    new_order = order.copy() if order is not None else None
+    # new_root = pickle.loads(pickle.dumps(root))
+    # new_order = order.copy() if order is not None else None
     mutations = []
     used_names = set()
     used_labels = set()
@@ -277,7 +279,7 @@ def replace_node(parent: ast.Node, attr: str, node: ast.Node, old: ast.Node):
         setattr(parent, attr, node)
 
 
-def anneal(state: Any, cost_func: Callable[[Any, int], int], steps: int, start_temp: float, end_temp: float, seed: int, mutate_func: Callable[[Any], Any] = mutate) -> Any:
+def anneal(solutions, steps: int, start_temp: float, end_temp: float, seed: int = 0) -> Any:
     """
     Perform simulated annealing optimization, using exponential temperature schedule.
     See https://en.wikipedia.org/wiki/Simulated_annealing
@@ -291,29 +293,31 @@ def anneal(state: Any, cost_func: Callable[[Any, int], int], steps: int, start_t
         Returns:
             best (Any): The best solution found
     """
-    current_cost = cost_func(state, inf)
+    state, current_cost, rng, finalize = solutions.get()
+    solutions.best(finalize)
     best_cost = current_cost
     best = state
     r = random.Random(seed)  # deterministic seed, to have deterministic results
     bar = tqdm.tqdm(_stepsGenerator(steps), position=1, leave=False)
     for i in bar:
+        solutions.put(state, rng)
         alpha = i / (steps - 1)
         temp = math.exp((1 - alpha) * math.log(start_temp) + alpha * math.log(end_temp))
-        candidate = mutate_func(state, r)
-        cand_cost = cost_func(candidate, best_cost)
+        candidate, cand_cost, rng, finalize = solutions.get()
         if cand_cost < current_cost or math.exp(-(cand_cost - current_cost) / temp) >= r.random():
             current_cost = cand_cost
             state = candidate
         if cand_cost < best_cost:
             best_cost = cand_cost
             best = candidate
+            solutions.best(finalize)
         bar.set_description(f"B:{best_cost} C:{current_cost} A:{cand_cost} T: {temp:.1f}")
         if best_cost <= 0:
             break
     return best
 
 
-def lahc(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_length: int, init_margin: int, seed: int, mutate_func: Callable[[Any], Any] = mutate) -> Any:
+def lahc(solutions, steps: int, list_length: int, init_margin: int) -> Any:
     """
     Optimize a function using Late Acceptance Hill Climbing
     See https://arxiv.org/pdf/1806.09328.pdf
@@ -327,15 +331,15 @@ def lahc(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_leng
         Returns:
             best (Any): The best solution found
     """
-    current_cost = cost_func(state, inf)
+    state, current_cost, rng, finalize = solutions.get()
+    solutions.best(finalize)
     best_cost = current_cost
     history = [best_cost + init_margin] * list_length
     best = state
-    r = random.Random(seed)  # deterministic seed, to have deterministic results
     bar = tqdm.tqdm(_stepsGenerator(steps), position=1, leave=False)
     for i in bar:
-        candidate = mutate_func(state, r)
-        cand_cost = cost_func(candidate, best_cost)
+        solutions.put(state, rng)
+        candidate, cand_cost, rng, finalize = solutions.get()
         v = i % list_length
         if cand_cost < history[v] or cand_cost <= current_cost:
             current_cost = cand_cost
@@ -345,13 +349,14 @@ def lahc(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_leng
         if cand_cost < best_cost:
             best_cost = cand_cost
             best = candidate
+            solutions.best(finalize)
         bar.set_description(f"B:{best_cost} C:{current_cost} A:{cand_cost}")
         if best_cost <= 0:
             break
     return best
 
 
-def dlas(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_length: int, init_margin: int, seed: int, mutate_func: Callable[[Any], Any] = mutate) -> Any:
+def dlas(solutions, steps: int, list_length: int, init_margin: int) -> Any:
     """
     Optimize a function using Diversified Late Acceptance Search
     See https://arxiv.org/pdf/1806.09328.pdf
@@ -365,18 +370,18 @@ def dlas(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_leng
         Returns:
             best (Any): The best solution found
     """
-    current_cost = cost_func(state, inf)
+    state, current_cost, rng, finalize = solutions.get()
+    solutions.best(finalize)
     best_cost = current_cost
     cost_max = best_cost + init_margin
     history = [cost_max] * list_length
     N = list_length
     best = state
-    r = random.Random(seed)  # deterministic seed, to have deterministic results
     bar = tqdm.tqdm(_stepsGenerator(steps), position=1, leave=False)
     for i in bar:
+        solutions.put(state, rng)
         prev_cost = current_cost
-        candidate = mutate_func(state, r)
-        cand_cost = cost_func(candidate, best_cost)
+        candidate, cand_cost, rng, finalize = solutions.get()
         v = i % list_length
         if cand_cost == current_cost or cand_cost < cost_max:
             current_cost = cand_cost
@@ -393,10 +398,113 @@ def dlas(state: Any, cost_func: Callable[[Any, int], int], steps: int, list_leng
         if cand_cost < best_cost:
             best_cost = cand_cost
             best = candidate
+            solutions.best(finalize)
         bar.set_description(f"B:{best_cost} C:{current_cost} M:{cost_max} A:{cand_cost}")
         if best_cost <= 0:
             break
     return best
+
+
+def pool_ctrl_c_handler(*args, **kwargs):
+    global ctrl_c_entered
+    ctrl_c_entered = True
+
+
+def init_pool_ctrl_c_handler():
+    # set global variable for each process in the pool:
+    global ctrl_c_entered
+    ctrl_c_entered = False
+    signal.signal(signal.SIGINT, pool_ctrl_c_handler)
+
+
+@dataclass
+class _PoolInitializer:
+    init: Callable[[Any], None]
+
+    def __call__(self, a):
+        init_pool_ctrl_c_handler()
+        if self.init is not None:
+            self.init(a)
+
+
+def _mutate_cost(state, rng, cost_func, first):
+    state = pickle.loads(state)
+    if not first:
+        state = mutate(state, rng)
+    new_cost, finish_write = cost_func(state)
+    return pickle.dumps(state), new_cost, rng, finish_write
+
+
+def _mutate_cost_pickled(state, rng, cost_func, first):
+    global ctrl_c_entered
+    if ctrl_c_entered:
+        return None
+    rng = pickle.loads(rng)
+    state = pickle.loads(state)
+    if not first:
+        state = mutate(state, rng)
+    new_cost, finish_write = pickle.loads(cost_func)(state)
+    return pickle.dumps(state), new_cost, pickle.dumps(rng), finish_write
+
+
+class Solutions:
+    processes: int
+    queue: deque
+    mutate_func: Callable[[Any], Any]
+    cost_func: Callable[[Any, int], int]
+    init_state: Any
+    queue_length: int
+
+    def __init__(self, state, seed: int, queue_length: int, processes: int, cost_func: Callable[[Any, int], int],  best_func, init=None, initargs=()):
+        self.processes = processes
+        if processes != 1:
+            init_pool_ctrl_c_handler()
+            self.pool = Pool(processes=processes, initializer=_PoolInitializer(init), initargs=(initargs,))
+        self.queue = deque()
+        self.cost_func = cost_func
+        self.cost_func_pickled = pickle.dumps(self.cost_func)
+        self.queue_length = queue_length
+        self.init_state = pickle.dumps(state)
+        self.seed = seed
+        self.best_func = best_func
+
+    def __enter__(self):
+        if self.processes != 1:
+            self.pool.__enter__()
+
+        rng = random.Random(self.seed)
+        for i in range(self.queue_length):
+            if self.processes != 1:
+                self.put(self.init_state, pickle.dumps(rng), first=i == 0)
+            else:
+                self.put(self.init_state, pickle.loads(pickle.dumps(rng)), first=i == 0)
+            rng = random.Random(rng.getrandbits(32))  # shuffle the rng so that the different rngs are used
+        return self
+
+    def __exit__(self, *args):
+        if self.processes != 1:
+            self.pool.close()
+            self.pool.join()
+            self.pool.__exit__(*args)
+
+    def get(self):
+        if self.processes != 1:
+            value = self.queue.popleft().get(timeout=9999)
+            if value is None:
+                raise KeyboardInterrupt
+            return value
+        else:
+            state, rng, first = self.queue.popleft()
+            return _mutate_cost(state, rng, self.cost_func, first)
+
+    def put(self, state, rng, first=False):
+        if self.processes != 1:
+            self.queue.append(self.pool.apply_async(_mutate_cost_pickled, (state, rng, self.cost_func_pickled, first)))
+        else:
+            self.queue.append((state, rng, first))
+
+    def best(self, finisher):
+        self.best_func(finisher)
 
 
 def _stepsGenerator(steps: int):

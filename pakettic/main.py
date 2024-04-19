@@ -57,7 +57,15 @@ def _parse_zopfli_level(arg: str) -> dict:
         raise argparse.ArgumentTypeError("Compression level should be an integer 0-5")
 
 
+def _check_positive(value):
+    ivalue = int(value)
+    if ivalue <= 0:
+        raise argparse.ArgumentTypeError("%s is an invalid positive int value" % value)
+    return ivalue
+
+
 def main():
+    global args
     """Main entrypoint for the command line program"""
     sys.setrecursionlimit(100000)  # TODO: find out why the parser recurses so heavily and reduce that
 
@@ -99,6 +107,10 @@ def main():
                           default="dlas")
     optgroup.add_argument('-s', '--steps', type=int, default=10000, metavar='int',
                           help='number of steps in the optimization algorithm. 0 = iterate forever (intermediate results saved). default: %(default)d')
+    optgroup.add_argument('-q', '--queue-length', type=_check_positive, default=12, metavar='int',
+                          help='number of parallel jobs in queue. to use all CPUs, this should be >= number of logical processors. too long queue slows down convergence. default: %(default)d')
+    optgroup.add_argument('-P', '--processes', type=_check_positive, default=None, metavar='int',
+                          help='number of parallel processes. 1 = no parallel processing. defaults to number of available logical processors.')
     optgroup.add_argument('-H', '--lahc-history', type=int, default=500, metavar='int',
                           help='history length in late acceptance hill climbing. default: %(default)d')
     optgroup.add_argument('-D', '--dlas-history', type=int, default=5, metavar='int',
@@ -181,8 +193,7 @@ def main():
             output_filepath = args.output
         original_size = os.path.getsize(input_filepath)
         # try:
-        minified_size, optimized_size = _process_file(
-            args, input_filepath, output_filepath, filepbar)
+        minified_size, optimized_size = _process_file(input_filepath, output_filepath, filepbar)
         # except Exception as e:
         # error = True
         # filepbar.write(
@@ -199,24 +210,12 @@ def main():
     sys.exit(1 if error else 0)
 
 
-def _process_file(args, input_path, output_filepath, pbar) -> tuple[int, int]:
-    def compress(bytes=None):
-        c = zopfli.ZopfliCompressor(zopfli.ZOPFLI_FORMAT_ZLIB, block_splitting=args.split,
-                                    block_splitting_max=args.split_max, iterations=args.iterations)
-        return (c.compress(bytes) + c.flush())
-
-    def format(root: ast.Node) -> bytes:
-        return printer.format(root, no_load=args.no_load).encode('latin-1')
-
-    def make_writer(data):
-        if args.output_format == 'lua':
-            return ticfile.write_lua(data)
-        elif args.output_format == 'png':
-            return ticfile.write_png(data, args.pedantic, compress)
-        elif args.output_format == 'unc':
-            return ticfile.write_tic(data, args.pedantic, None)
-        else:
-            return ticfile.write_tic(data, args.pedantic, compress)
+def _process_file(input_path, output_filepath, pbar) -> tuple[int, int]:
+    # These are global for performance reasons. When multiprocessing, globals
+    # are not copied to child processes, so we pass them as arguments to the
+    # process initialize (_initializer) function, which set the globals for that
+    # process
+    global args, write
 
     input_sliced = input_path[-30:] if len(input_path) > 30 else input_path
     pbar.set_description(f"Processing    {input_sliced}")
@@ -235,43 +234,75 @@ def _process_file(args, input_path, output_filepath, pbar) -> tuple[int, int]:
     root = optimize.minify(root)
     root = ast.Hint(root)
     # writer caches as much as possible of the data writing so that we don't have to recompute data parts for each optimization step
-    write = make_writer(cart.data)
-    minified_size, finish_write = write(format(root))
+    write = _make_writer(cart.data)
+    minified_size, finish_write = write(_format(root))
     with open(output_filepath, 'wb') as output_file:
         final_size = finish_write(output_file)
     assert final_size == minified_size
 
-    def _cost_func(root_data, best_cost) -> tuple[int, Callable]:
-        nonlocal final_size, write
-        root, data = root_data
-        if data is not None:  # PNG carts shuffle the data chunks so we cannot cache the data parts & have to regenerate writer for each step
-            write = make_writer(data)
-        cand_size, finish_write = write(format(root))
-        cand_cost = cand_size - args.target_size
-        if args.exact:
-            cand_cost = abs(cand_cost)
-        if cand_cost < best_cost:
-            with open(output_filepath, 'wb') as output_file:
-                final_size = finish_write(output_file)
-            assert final_size == cand_size
-            if args.print_best:
-                pbar.write(
-                    f"-- {final_size} bytes:\n{'-'*40}\n{printer.format(root, pretty=True).strip()}\n{'-'*40}")
-        return cand_cost
+    def _best_func(cf):
+        nonlocal final_size
+        cand_size, finish_write = cf
+        with open(output_filepath, 'wb') as output_file:
+            final_size = finish_write(output_file)
+        assert final_size == cand_size
+        if args.print_best:
+            pbar.write(
+                f"-- {final_size} bytes:\n{'-'*40}\n{printer.format(root, pretty=True).strip()}\n{'-'*40}")
 
     # only PNG carts cab benefit from data chunk order shuffling
     data = cart.data if args.output_format == 'png' else None
 
-    if args.algorithm == 'lahc':
-        optimize.lahc((root, data), steps=args.steps, cost_func=_cost_func,
-                      list_length=args.lahc_history, init_margin=args.margin, seed=args.seed)
-    elif args.algorithm == 'dlas':
-        optimize.dlas((root, data), steps=args.steps, cost_func=_cost_func,
-                      list_length=args.dlas_history, init_margin=args.margin, seed=args.seed)
-    else:
-        optimize.anneal((root, data), steps=args.steps, cost_func=_cost_func,
-                        start_temp=args.start_temp, end_temp=args.end_temp, seed=args.seed)
+    with optimize.Solutions((root, data), args.seed, args.queue_length, args.processes, _cost_func, _best_func, _initializer, (args, write)) as solutions:
+        if args.algorithm == 'lahc':
+            optimize.lahc(solutions, steps=args.steps, list_length=args.lahc_history, init_margin=args.margin)
+        elif args.algorithm == 'dlas':
+            optimize.dlas(solutions, steps=args.steps, list_length=args.dlas_history, init_margin=args.margin)
+        else:
+            optimize.anneal(solutions, steps=args.steps, start_temp=args.start_temp, end_temp=args.end_temp, seed=args.seed)
     return minified_size, final_size
+
+
+def _compress(bytes=None):
+    global args
+    c = zopfli.ZopfliCompressor(zopfli.ZOPFLI_FORMAT_ZLIB, block_splitting=args.split,
+                                block_splitting_max=args.split_max, iterations=args.iterations)
+    return (c.compress(bytes) + c.flush())
+
+
+def _format(root: ast.Node) -> bytes:
+    global args
+    return printer.format(root, no_load=args.no_load).encode('latin-1')
+
+
+def _make_writer(data):
+    global args
+    if args.output_format == 'lua':
+        return ticfile.write_lua(data)
+    elif args.output_format == 'png':
+        return ticfile.write_png(data, args.pedantic, _compress)
+    elif args.output_format == 'unc':
+        return ticfile.write_tic(data, args.pedantic, None)
+    else:
+        return ticfile.write_tic(data, args.pedantic, _compress)
+
+
+def _initializer(a):
+    global args, write
+    args, write = a
+
+
+def _cost_func(root_data):
+    global args, write
+    root, data = root_data
+    if data is not None:  # PNG carts shuffle the data chunks so we cannot cache the data parts & have to regenerate writer for each step
+        cand_size, finish_write = _make_writer(data)(_format(root))
+    else:
+        cand_size, finish_write = write(_format(root))
+    cand_cost = cand_size - args.target_size
+    if args.exact:
+        cand_cost = abs(cand_cost)
+    return cand_cost, (cand_size, finish_write)
 
 
 if __name__ == '__main__':
