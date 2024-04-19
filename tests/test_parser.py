@@ -430,6 +430,7 @@ class TestUnaryOperators(unittest.TestCase):
             ('#a', UnaryOp("#", Name("a"))),
             ('not false', UnaryOp("not", Boolean(False))),
             ('~5', UnaryOp("~", Numeral(5))),
+            ('not note', UnaryOp("not", Name("note"))),
         ]
         for a, expected in cases:
             with self.subTest(parsed=a, expected=expected):
