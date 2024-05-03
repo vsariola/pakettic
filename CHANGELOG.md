@@ -43,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- When packing multiple files, the initial minification of subsequent files
+  continued using variable names from where the previous files had stopped.
 - Parse error: `note` was parsed as `not e`
 
 ## [1.3.1] - 2024-01-09

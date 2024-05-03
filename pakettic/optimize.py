@@ -22,7 +22,6 @@ def _toBase26(num):
     return s
 
 
-_MINIFIED_NAMES = (name for i in itertools.count(start=1, step=1) if (name := _toBase26(i)) not in _RESERVED and name not in parser.keywords)
 _FLIPPABLE_OPS = [">", "<", ">=", "<=", "~=", "=="]
 _FLIPPED_OPS = ["<", ">", "<=", ">=", "~=", "=="]
 _REORDERABLE_OPS = ["+", "-", "*", "/", "&", "|", "~"]
@@ -85,8 +84,8 @@ def minify(root: ast.Node) -> ast.Node:
     new_root = pickle.loads(pickle.dumps(root))  # pickling/unpickling is faster than deepcopy
     changed_names = dict()
     changed_labels = dict()
-    name_iter = iter(_MINIFIED_NAMES)
-    label_iter = iter(_MINIFIED_NAMES)
+    name_iter = iter((name for i in itertools.count(start=1, step=1) if (name := _toBase26(i)) not in _RESERVED and name not in parser.keywords))
+    label_iter = iter((name for i in itertools.count(start=1, step=1) if (name := _toBase26(i)) not in _RESERVED and name not in parser.keywords))
 
     def _tryget(d: dict, key: str, it):
         if key in _RESERVED:
