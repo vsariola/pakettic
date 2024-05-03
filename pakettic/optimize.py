@@ -333,8 +333,8 @@ class Solutions:
         else:
             self.queue.append((state, rng, first))
 
-    def best(self, finisher):
-        self.best_func(finisher)
+    def best(self, state, finisher):
+        self.best_func(state, finisher)
 
 
 def anneal(solutions: Solutions, steps: int, start_temp: float, end_temp: float, seed: int = 0) -> Any:
@@ -351,7 +351,7 @@ def anneal(solutions: Solutions, steps: int, start_temp: float, end_temp: float,
             best (Any): The best solution found
     """
     state, current_cost, rng, finalize = solutions.get()
-    solutions.best(finalize)
+    solutions.best(state, finalize)
     best_cost = current_cost
     best = state
     r = random.Random(seed)  # deterministic seed, to have deterministic results
@@ -367,7 +367,7 @@ def anneal(solutions: Solutions, steps: int, start_temp: float, end_temp: float,
         if cand_cost < best_cost:
             best_cost = cand_cost
             best = candidate
-            solutions.best(finalize)
+            solutions.best(best, finalize)
         bar.set_description(f"B:{best_cost} C:{current_cost} A:{cand_cost} T: {temp:.1f}")
         if best_cost <= 0:
             break
@@ -387,7 +387,7 @@ def lahc(solutions: Solutions, steps: int, list_length: int, init_margin: int) -
             best (Any): The best solution found
     """
     state, current_cost, rng, finalize = solutions.get()
-    solutions.best(finalize)
+    solutions.best(state, finalize)
     best_cost = current_cost
     history = [best_cost + init_margin] * list_length
     best = state
@@ -404,7 +404,7 @@ def lahc(solutions: Solutions, steps: int, list_length: int, init_margin: int) -
         if cand_cost < best_cost:
             best_cost = cand_cost
             best = candidate
-            solutions.best(finalize)
+            solutions.best(best, finalize)
         bar.set_description(f"B:{best_cost} C:{current_cost} A:{cand_cost}")
         if best_cost <= 0:
             break
@@ -424,7 +424,7 @@ def dlas(solutions: Solutions, steps: int, list_length: int, init_margin: int) -
             best (Any): The best solution found
     """
     state, current_cost, rng, finalize = solutions.get()
-    solutions.best(finalize)
+    solutions.best(state, finalize)
     best_cost = current_cost
     cost_max = best_cost + init_margin
     history = [cost_max] * list_length
@@ -451,7 +451,7 @@ def dlas(solutions: Solutions, steps: int, list_length: int, init_margin: int) -
         if cand_cost < best_cost:
             best_cost = cand_cost
             best = candidate
-            solutions.best(finalize)
+            solutions.best(best, finalize)
         bar.set_description(f"B:{best_cost} C:{current_cost} M:{cost_max} A:{cand_cost}")
         if best_cost <= 0:
             break

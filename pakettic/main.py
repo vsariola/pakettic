@@ -1,6 +1,7 @@
 from cmath import inf
 import argparse
 import io
+import pickle
 import struct
 from typing import Callable
 from pakettic import ast
@@ -239,15 +240,14 @@ def _process_file(input_path, output_filepath, pbar) -> tuple[int, int]:
         final_size = finisher(output_file)
     assert final_size == minified_size
 
-    def _best_func(cf):
+    def _best_func(state, cf):
         nonlocal final_size
         cand_size, finisher = cf
         with open(output_filepath, 'wb') as output_file:
             final_size = finisher(output_file)
         assert final_size == cand_size
         if args.print_best:
-            pbar.write(
-                f"-- {final_size} bytes:\n{'-'*40}\n{printer.format(root, pretty=True).strip()}\n{'-'*40}")
+            pbar.write(f"-- {final_size} bytes:\n{'-'*40}\n{printer.format(pickle.loads(state)[0], pretty=True).strip()}\n{'-'*40}")
 
     # only PNG carts cab benefit from data chunk order shuffling
     data = cart.data if args.output_format == 'png' else None
