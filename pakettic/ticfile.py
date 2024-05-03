@@ -48,14 +48,21 @@ DATACHUNK_ADDRESSES = {
 # Each cart may have 1-8 banks, which may or may not be present
 Chunk = tuple[int, ChunkID, ByteString]
 
+# Finisher is a function that takes a binary file and writes the cart to it,
+# returning the size of the cart written
+Finisher = Callable[[typing.BinaryIO], int]
+
 # Writer is a function that takes the code (as encoded in latin-1 to bytes) and
-# returns the "estimated" size of the cart with this code & a function that
-# actually writes the cart to a file.
+# returns what the size of the cart will be with this code, without actually
+# outputting the cart to a file yet. It also returns a Finisher function that
+# actually writes the cart to a file. The Finisher also returns the size of the
+# actual cart written; the pre-estimated size and the actual size should always
+# match exactly.
 #
 # All the cart saving functions take the data chunks and return a Writer, so
 # that we can layout the data sections only once and regenerate only the code
 # section when estimating the final size of the cart during optimization
-Writer = Callable[[bytes], tuple[int, Callable[[typing.BinaryIO], int]]]
+Writer = Callable[[bytes], tuple[int, Finisher]]
 
 
 @dataclass
@@ -96,7 +103,6 @@ def write_tic(data: list[Chunk], pedantic: bool, compress: Callable[[bytes], byt
 # multiprocessing so had to do like this. The multiprocess library uses dill
 # instead of pickle, which can serialize lambdas, but it's not a standard
 # library and dill was slower than pickle
-
 @dataclass
 class _TicWriter:
     compress: Callable[[bytes], bytes]
@@ -105,12 +111,12 @@ class _TicWriter:
     def __call__(self, code: bytes):
         if self.compress is not None:
             compressed = self.compress(code)[0:-4]
-            return len(compressed)+4+len(self.data), _TicCompressedOutput(compressed, self.data)
-        return _codelen(code) + len(self.data), _TicUncompressedOutput(code, self.data)
+            return len(compressed)+4+len(self.data), _TicCompressedFinisher(compressed, self.data)
+        return _codelen(code) + len(self.data), _TicUncompressedFinisher(code, self.data)
 
 
 @dataclass
-class _TicCompressedOutput:
+class _TicCompressedFinisher:
     compressed: bytes
     data: bytes
 
@@ -119,7 +125,7 @@ class _TicCompressedOutput:
 
 
 @dataclass
-class _TicUncompressedOutput:
+class _TicUncompressedFinisher:
     code: bytes
     data: bytes
 
@@ -235,11 +241,11 @@ class _PngWriter:
         size, finish = self.inner_writer(code)
         assert finish(bio) == size
         compressed = self.compress(bio.getvalue())
-        return len(compressed)+16, _PngOutput(compressed)
+        return len(compressed)+16, _PngFinisher(compressed)
 
 
 @dataclass
-class _PngOutput:
+class _PngFinisher:
     compressed: bytes
 
     def __call__(self, file: typing.BinaryIO) -> int:
@@ -310,11 +316,11 @@ class _LuaWriter:
     data: bytes
 
     def __call__(self, code: bytes):
-        return len(code) + len(self.data), _LuaOutput(code, self.data)
+        return len(code) + len(self.data), _LuaFinisher(code, self.data)
 
 
 @dataclass
-class _LuaOutput:
+class _LuaFinisher:
     code: bytes
     data: bytes
 

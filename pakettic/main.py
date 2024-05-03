@@ -214,7 +214,7 @@ def _process_file(input_path, output_filepath, pbar) -> tuple[int, int]:
     # are not copied to child processes, so we pass them as arguments to the
     # process initialize (_initializer) function, which set the globals for that
     # process
-    global args, write
+    global args, writer
 
     input_sliced = input_path[-30:] if len(input_path) > 30 else input_path
     pbar.set_description(f"Processing    {input_sliced}")
@@ -233,17 +233,17 @@ def _process_file(input_path, output_filepath, pbar) -> tuple[int, int]:
     root = optimize.minify(root)
     root = ast.Hint(root)
     # writer caches as much as possible of the data writing so that we don't have to recompute data parts for each optimization step
-    write = _make_writer(cart.data)
-    minified_size, finish_write = write(_format(root))
+    writer = _make_writer(cart.data)
+    minified_size, finisher = writer(_format(root))
     with open(output_filepath, 'wb') as output_file:
-        final_size = finish_write(output_file)
+        final_size = finisher(output_file)
     assert final_size == minified_size
 
     def _best_func(cf):
         nonlocal final_size
-        cand_size, finish_write = cf
+        cand_size, finisher = cf
         with open(output_filepath, 'wb') as output_file:
-            final_size = finish_write(output_file)
+            final_size = finisher(output_file)
         assert final_size == cand_size
         if args.print_best:
             pbar.write(
@@ -252,7 +252,7 @@ def _process_file(input_path, output_filepath, pbar) -> tuple[int, int]:
     # only PNG carts cab benefit from data chunk order shuffling
     data = cart.data if args.output_format == 'png' else None
 
-    with optimize.Solutions((root, data), args.seed, args.queue_length, args.processes, _cost_func, _best_func, _initializer, (args, write)) as solutions:
+    with optimize.Solutions((root, data), args.seed, args.queue_length, args.processes, _cost_func, _best_func, _initializer, (args, writer)) as solutions:
         if args.algorithm == 'lahc':
             optimize.lahc(solutions, steps=args.steps, list_length=args.lahc_history, init_margin=args.margin)
         elif args.algorithm == 'dlas':
@@ -274,7 +274,7 @@ def _format(root: ast.Node) -> bytes:
     return printer.format(root, no_load=args.no_load).encode('latin-1')
 
 
-def _make_writer(data):
+def _make_writer(data) -> ticfile.Writer:
     global args
     if args.output_format == 'lua':
         return ticfile.write_lua(data)
@@ -287,21 +287,21 @@ def _make_writer(data):
 
 
 def _initializer(a):
-    global args, write
-    args, write = a
+    global args, writer
+    args, writer = a
 
 
 def _cost_func(root_data):
-    global args, write
+    global args, writer
     root, data = root_data
     if data is not None:  # PNG carts shuffle the data chunks so we cannot cache the data parts & have to regenerate writer for each step
-        cand_size, finish_write = _make_writer(data)(_format(root))
+        cand_size, finisher = _make_writer(data)(_format(root))
     else:
-        cand_size, finish_write = write(_format(root))
+        cand_size, finisher = writer(_format(root))
     cand_cost = cand_size - args.target_size
     if args.exact:
         cand_cost = abs(cand_cost)
-    return cand_cost, (cand_size, finish_write)
+    return cand_cost, (cand_size, finisher)
 
 
 if __name__ == '__main__':
