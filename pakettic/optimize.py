@@ -109,20 +109,18 @@ def minify(root: ast.Node) -> ast.Node:
     return new_root
 
 
-def mutate(root_order: tuple[ast.Node, list], rand: random.Random) -> tuple[ast.Node, list]:
+def mutate(root_order: tuple[ast.Node, list], rand: random.Random):
     """
-    Mutates an abstract syntax tree by making small modification to it,
-    e.g. flipping binary operators or changing variable names
+    Mutates an abstract syntax tree by making small modification to it, e.g.
+    flipping binary operators or changing variable names
         Parameters:
-            root_order (tuple[ast.Node,list]): First item is the root of the abstract syntax tree, second item the chunk order in cart (can be nil if chunk shuffling not wanted)
-            rand (random.Random): Random number generator to use
-        Returns:
-            new_root (ast.Node): Root of the new, mutated abstract syntax tree
+            root_order (tuple[ast.Node,list]): First item is the root of the
+                abstract syntax tree, second item the chunk order in cart (can be
+                nil if chunk shuffling not wanted). These will get modified, so deep
+                copy them before calling this function if needed.
+            (random.Random): Random number generator to use
     """
-    new_root, new_order = root_order
-    # pickling/unpickling is faster than deepcopy
-    # new_root = pickle.loads(pickle.dumps(root))
-    # new_order = order.copy() if order is not None else None
+    root, order = root_order
     mutations = []
     used_names = set()
     used_labels = set()
@@ -210,7 +208,7 @@ def mutate(root_order: tuple[ast.Node, list], rand: random.Random) -> tuple[ast.
             def _mutation():
                 replace_node(parent, attr, node.original, None)
 
-    visit(new_root, _check_mutations)
+    visit(root, _check_mutations)
     used_names = sorted(used_names.difference(_RESERVED))
 
     def var_repl(id_a, id_b):
@@ -221,7 +219,7 @@ def mutate(root_order: tuple[ast.Node, list], rand: random.Random) -> tuple[ast.
                         node.id = id_b
                     elif node.id == id_b:
                         node.id = id_a
-            visit(new_root, _repl)
+            visit(root, _repl)
         return _mut
     # if both a and b are in used_names, we have both copies of a,b and b,a in the list
     # but that's probably ok: swapping variables head to head is usually better idea
@@ -241,24 +239,23 @@ def mutate(root_order: tuple[ast.Node, list], rand: random.Random) -> tuple[ast.
                         node.target = name_b
                     elif node.target == name_b:
                         node.target = name_a
-            visit(new_root, _repl)
+            visit(root, _repl)
         return _mut
     used_labels = sorted(used_labels)
     mutations.extend((label_repl(a, b)
                      for a in used_labels for b in _LOWERS if a != b))
 
-    if new_order is not None and len(new_order) > 0:
+    if order is not None and len(order) > 0:
         def chunk_swap(i, j: int):
             def _mut():
-                new_order[i], new_order[j] = new_order[j], new_order[i]
+                order[i], order[j] = order[j], order[i]
             return _mut
         mutations.extend(chunk_swap(i, j) for i, _ in enumerate(
-            new_order) for j, _ in enumerate(new_order) if j > i)
+            order) for j, _ in enumerate(order) if j > i)
 
     if len(mutations) > 0:
         mutation = rand.choice(mutations)
         mutation()
-    return new_root, new_order
 
 
 def replace_node(parent: ast.Node, attr: str, node: ast.Node, old: ast.Node):
@@ -279,17 +276,78 @@ def replace_node(parent: ast.Node, attr: str, node: ast.Node, old: ast.Node):
         setattr(parent, attr, node)
 
 
-def anneal(solutions, steps: int, start_temp: float, end_temp: float, seed: int = 0) -> Any:
+class Solutions:
+    processes: int
+    queue: deque
+    mutate_func: Callable[[Any], Any]
+    cost_func: Callable[[Any, int], int]
+    init_state: Any
+    queue_length: int
+
+    def __init__(self, state, seed: int, queue_length: int, processes: int, cost_func: Callable[[Any, int], int],  best_func, init=None, initargs=()):
+        self.processes = processes
+        if processes != 1:
+            _initialize_ctrl_c_handler()
+            self.pool = Pool(processes=processes, initializer=_PoolInitializer(init), initargs=(initargs,))
+        else:
+            self.pool = None
+        self.queue = deque()
+        self.cost_func = cost_func
+        self.cost_func_pickled = pickle.dumps(self.cost_func)
+        self.queue_length = queue_length
+        self.init_state = pickle.dumps(state)
+        self.seed = seed
+        self.best_func = best_func
+
+    def __enter__(self):
+        if self.pool is not None:
+            self.pool.__enter__()
+
+        rng = random.Random(self.seed)
+        for i in range(self.queue_length):
+            if self.pool is not None:
+                self.put(self.init_state, pickle.dumps(rng), first=i == 0)
+            else:
+                self.put(self.init_state, pickle.loads(pickle.dumps(rng)), first=i == 0)
+            rng = random.Random(rng.getrandbits(32))  # shuffle the rng so that the different rngs are used
+        return self
+
+    def __exit__(self, *args):
+        if self.pool is not None:
+            self.pool.close()
+            self.pool.join()
+            self.pool.__exit__(*args)
+
+    def get(self):
+        if self.pool is not None:
+            value = self.queue.popleft().get(timeout=9999)
+            if value is None:
+                raise KeyboardInterrupt
+            return value
+        else:
+            state, rng, first = self.queue.popleft()
+            return _mutate_cost(state, rng, self.cost_func, first)
+
+    def put(self, state, rng, first=False):
+        if self.pool is not None:
+            self.queue.append(self.pool.apply_async(_mutate_cost_pickled, (state, rng, self.cost_func_pickled, first)))
+        else:
+            self.queue.append((state, rng, first))
+
+    def best(self, finisher):
+        self.best_func(finisher)
+
+
+def anneal(solutions: Solutions, steps: int, start_temp: float, end_temp: float, seed: int = 0) -> Any:
     """
     Perform simulated annealing optimization, using exponential temperature schedule.
     See https://en.wikipedia.org/wiki/Simulated_annealing
         Parameters:
-            state: Starting state for the optimization
-            cost_func (Callable[[Any, int], int]): Callback function, with the first parameter the state and second parameter the cost of best solution so far
+            solutions (Solutions): the Solutions object with a pool of solutions, cost function and best function
             steps (int): how many steps the optimization algorithms takes
             start_temp (float): starting temperature for the optimization
             end_temp (float): end temperature for the optimization
-            mutate_func (Callable[[Any], Any]): Callback function state -> state that performs a small mutation in the code
+            seed (int): seed for the random number generator
         Returns:
             best (Any): The best solution found
     """
@@ -317,17 +375,15 @@ def anneal(solutions, steps: int, start_temp: float, end_temp: float, seed: int 
     return best
 
 
-def lahc(solutions, steps: int, list_length: int, init_margin: int) -> Any:
+def lahc(solutions: Solutions, steps: int, list_length: int, init_margin: int) -> Any:
     """
     Optimize a function using Late Acceptance Hill Climbing
     See https://arxiv.org/pdf/1806.09328.pdf
         Parameters:
-            state: Starting state for the optimization
-            cost_func (Callable[[Any, int], int]): Callback function, with the first parameter the state and second parameter the cost of best solution so far
+            solutions (Solutions): the Solutions object with a pool of solutions, cost function and best function
             steps (int): how many steps the optimization algorithms takes
             list_length (int): length of the history in the algorithm
             init_margin (int): how much margin, in bytes, to add to the initial best cost
-            mutate_func (Callable[[Any], Any]): Callback function state -> state that performs a small mutation in the code
         Returns:
             best (Any): The best solution found
     """
@@ -356,17 +412,15 @@ def lahc(solutions, steps: int, list_length: int, init_margin: int) -> Any:
     return best
 
 
-def dlas(solutions, steps: int, list_length: int, init_margin: int) -> Any:
+def dlas(solutions: Solutions, steps: int, list_length: int, init_margin: int) -> Any:
     """
     Optimize a function using Diversified Late Acceptance Search
     See https://arxiv.org/pdf/1806.09328.pdf
         Parameters:
-            state: Starting state for the optimization
-            cost_func (Callable[[Any, int], int]): Callback function, with the first parameter the state and second parameter the cost of best solution so far
+            solutions (Solutions): the Solutions object with a pool of solutions, cost function and best function
             steps (int): how many steps the optimization algorithms takes
             list_length (int): length of the history in the algorithm
             init_margin (int): how much margin, in bytes, to add to the initial best cost
-            mutate_func (Callable[[Any], Any]): Callback function state -> state that performs a small mutation in the code
         Returns:
             best (Any): The best solution found
     """
@@ -405,24 +459,27 @@ def dlas(solutions, steps: int, list_length: int, init_margin: int) -> Any:
     return best
 
 
-def pool_ctrl_c_handler(*args, **kwargs):
+def _ctrl_c_handler(*args, **kwargs):
     global ctrl_c_entered
     ctrl_c_entered = True
 
 
-def init_pool_ctrl_c_handler():
+def _initialize_ctrl_c_handler():
     # set global variable for each process in the pool:
     global ctrl_c_entered
     ctrl_c_entered = False
-    signal.signal(signal.SIGINT, pool_ctrl_c_handler)
+    signal.signal(signal.SIGINT, _ctrl_c_handler)
 
 
 @dataclass
 class _PoolInitializer:
+    """
+    This class was just a simple lambda function, but it is not possible to pickle lambda functions with default pickling
+    """
     init: Callable[[Any], None]
 
     def __call__(self, a):
-        init_pool_ctrl_c_handler()
+        _initialize_ctrl_c_handler()
         if self.init is not None:
             self.init(a)
 
@@ -430,7 +487,7 @@ class _PoolInitializer:
 def _mutate_cost(state, rng, cost_func, first):
     state = pickle.loads(state)
     if not first:
-        state = mutate(state, rng)
+        mutate(state, rng)
     new_cost, finish_write = cost_func(state)
     return pickle.dumps(state), new_cost, rng, finish_write
 
@@ -442,69 +499,9 @@ def _mutate_cost_pickled(state, rng, cost_func, first):
     rng = pickle.loads(rng)
     state = pickle.loads(state)
     if not first:
-        state = mutate(state, rng)
+        mutate(state, rng)
     new_cost, finish_write = pickle.loads(cost_func)(state)
     return pickle.dumps(state), new_cost, pickle.dumps(rng), finish_write
-
-
-class Solutions:
-    processes: int
-    queue: deque
-    mutate_func: Callable[[Any], Any]
-    cost_func: Callable[[Any, int], int]
-    init_state: Any
-    queue_length: int
-
-    def __init__(self, state, seed: int, queue_length: int, processes: int, cost_func: Callable[[Any, int], int],  best_func, init=None, initargs=()):
-        self.processes = processes
-        if processes != 1:
-            init_pool_ctrl_c_handler()
-            self.pool = Pool(processes=processes, initializer=_PoolInitializer(init), initargs=(initargs,))
-        self.queue = deque()
-        self.cost_func = cost_func
-        self.cost_func_pickled = pickle.dumps(self.cost_func)
-        self.queue_length = queue_length
-        self.init_state = pickle.dumps(state)
-        self.seed = seed
-        self.best_func = best_func
-
-    def __enter__(self):
-        if self.processes != 1:
-            self.pool.__enter__()
-
-        rng = random.Random(self.seed)
-        for i in range(self.queue_length):
-            if self.processes != 1:
-                self.put(self.init_state, pickle.dumps(rng), first=i == 0)
-            else:
-                self.put(self.init_state, pickle.loads(pickle.dumps(rng)), first=i == 0)
-            rng = random.Random(rng.getrandbits(32))  # shuffle the rng so that the different rngs are used
-        return self
-
-    def __exit__(self, *args):
-        if self.processes != 1:
-            self.pool.close()
-            self.pool.join()
-            self.pool.__exit__(*args)
-
-    def get(self):
-        if self.processes != 1:
-            value = self.queue.popleft().get(timeout=9999)
-            if value is None:
-                raise KeyboardInterrupt
-            return value
-        else:
-            state, rng, first = self.queue.popleft()
-            return _mutate_cost(state, rng, self.cost_func, first)
-
-    def put(self, state, rng, first=False):
-        if self.processes != 1:
-            self.queue.append(self.pool.apply_async(_mutate_cost_pickled, (state, rng, self.cost_func_pickled, first)))
-        else:
-            self.queue.append((state, rng, first))
-
-    def best(self, finisher):
-        self.best_func(finisher)
 
 
 def _stepsGenerator(steps: int):
