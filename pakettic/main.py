@@ -192,13 +192,12 @@ def main():
         else:
             output_filepath = args.output
         original_size = os.path.getsize(input_filepath)
-        # try:
-        minified_size, optimized_size = _process_file(input_filepath, output_filepath, filepbar)
-        # except Exception as e:
-        # error = True
-        # filepbar.write(
-        # f"Error processing {input_filepath}: {e}, skipping...")
-        # continue
+        try:
+            minified_size, optimized_size = _process_file(input_filepath, output_filepath, filepbar)
+        except KeyboardInterrupt:
+            error = True
+            filepbar.write(f"Interrupt processing {input_filepath}")
+            break
         total_original_size += original_size
         total_optimized_size += optimized_size
         total_minified_size += minified_size
