@@ -6,7 +6,7 @@ import math
 import pickle
 import signal
 import random
-from typing import Any, Callable, Optional, get_args, get_origin, get_type_hints
+from typing import Any, Callable, Optional, Tuple, get_args, get_origin, get_type_hints
 import tqdm
 from pakettic import ast, parser
 from dataclasses import dataclass, replace
@@ -117,7 +117,7 @@ def mutate(root_order: tuple[ast.Node, list], rand: random.Random):
                 abstract syntax tree, second item the chunk order in cart (can be
                 nil if chunk shuffling not wanted). These will get modified, so deep
                 copy them before calling this function if needed.
-            (random.Random): Random number generator to use
+            rand (random.Random): Random number generator to use
     """
     root, order = root_order
     mutations = []
@@ -279,11 +279,11 @@ class Solutions:
     processes: int
     queue: deque
     mutate_func: Callable[[Any], Any]
-    cost_func: Callable[[Any, int], int]
+    cost_func: Callable[[Any, int], Tuple[int, Any]]
     init_state: Any
     queue_length: int
 
-    def __init__(self, state, seed: int, queue_length: int, processes: int, cost_func: Callable[[Any, int], int],  best_func, init=None, initargs=()):
+    def __init__(self, state, seed: int, queue_length: int, processes: int, cost_func: Callable[[Any, int], Tuple[int, Any]],  best_func, init=None, initargs=()):
         self.processes = processes
         if processes != 1:
             self.pool = Pool(processes=processes, initializer=_PoolInitializer(init), initargs=(initargs,))
@@ -323,7 +323,7 @@ class Solutions:
             state, rng, first = self.queue.popleft()
             return _mutate_cost(state, rng, self.cost_func, first)
 
-    def put(self, state, rng, first=False):
+    def put(self, state: Any, rng: random.Random, first=False):
         if self.pool is not None:
             self.queue.append(self.pool.apply_async(_mutate_cost_pickled, (state, rng, self.cost_func_pickled, first)))
         else:
@@ -468,21 +468,31 @@ class _PoolInitializer:
             self.init(a)
 
 
-def _mutate_cost(state, rng, cost_func, first):
+def _mutate_cost(state, rng: random.Random, cost_func, first):
+    """
+    Helper function that mutates a state and calculates the cost. Used when not
+    doing multiprocessing. Avoids unnecessary pickling/unpickling of the rng and
+    the cost_func.
+    """
     state = pickle.loads(state)
     if not first:
         mutate(state, rng)
-    new_cost, finish_write = cost_func(state)
-    return pickle.dumps(state), new_cost, rng, finish_write
+    new_cost, finisher = cost_func(state)
+    return pickle.dumps(state), new_cost, rng, finisher
 
 
 def _mutate_cost_pickled(state, rng, cost_func, first):
+    """
+    Helper function that mutates a state and calculates the cost. Used when
+    multiprocessing. Pickles/unpickles also the rng and cost_func as these need
+    to go back and forth between the main process and the pool processes.
+    """
     rng = pickle.loads(rng)
     state = pickle.loads(state)
     if not first:
         mutate(state, rng)
-    new_cost, finish_write = pickle.loads(cost_func)(state)
-    return pickle.dumps(state), new_cost, pickle.dumps(rng), finish_write
+    new_cost, finisher = pickle.loads(cost_func)(state)
+    return pickle.dumps(state), new_cost, pickle.dumps(rng), finisher
 
 
 def _stepsGenerator(steps: int):
