@@ -286,7 +286,6 @@ class Solutions:
     def __init__(self, state, seed: int, queue_length: int, processes: int, cost_func: Callable[[Any, int], int],  best_func, init=None, initargs=()):
         self.processes = processes
         if processes != 1:
-            _initialize_ctrl_c_handler()
             self.pool = Pool(processes=processes, initializer=_PoolInitializer(init), initargs=(initargs,))
         else:
             self.pool = None
@@ -319,10 +318,7 @@ class Solutions:
 
     def get(self):
         if self.pool is not None:
-            value = self.queue.popleft().get(timeout=9999)
-            if value is None:
-                raise KeyboardInterrupt
-            return value
+            return self.queue.popleft().get(timeout=9999)
         else:
             state, rng, first = self.queue.popleft()
             return _mutate_cost(state, rng, self.cost_func, first)
@@ -458,18 +454,6 @@ def dlas(solutions: Solutions, steps: int, list_length: int, init_margin: int) -
     return best
 
 
-def _ctrl_c_handler(*args, **kwargs):
-    global ctrl_c_entered
-    ctrl_c_entered = True
-
-
-def _initialize_ctrl_c_handler():
-    # set global variable for each process in the pool:
-    global ctrl_c_entered
-    ctrl_c_entered = False
-    signal.signal(signal.SIGINT, _ctrl_c_handler)
-
-
 @dataclass
 class _PoolInitializer:
     """
@@ -478,7 +462,8 @@ class _PoolInitializer:
     init: Callable[[Any], None]
 
     def __call__(self, a):
-        _initialize_ctrl_c_handler()
+        # ignore SIGINT in the pool processes; rather, let the main process handle it and close the pool when it happens
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
         if self.init is not None:
             self.init(a)
 
@@ -492,9 +477,6 @@ def _mutate_cost(state, rng, cost_func, first):
 
 
 def _mutate_cost_pickled(state, rng, cost_func, first):
-    global ctrl_c_entered
-    if ctrl_c_entered:
-        return None
     rng = pickle.loads(rng)
     state = pickle.loads(state)
     if not first:
