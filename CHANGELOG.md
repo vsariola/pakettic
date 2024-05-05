@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [1.4.0] - 2024-05-05
 
 ### Added
 
@@ -13,9 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   processes simultaneously. This results in approx. 2-3x faster packing of
   files. Parameter `-q` controls the processing queue length; this is the
   maximum number of solutions being explored simultaneously. Defaults to 12, but
-  you can increase if you have a lot of cores. `-P` controls the number of
-  parallel processes in a pool, defaults to number of cores and can be usually
-  left unchanged. `-q1 -P1` is identical to the old behavior.
+  you can try increasing it if you have a lot of cores. `-P` controls the number
+  of parallel processes in a pool, defaults to number of cores and can be
+  usually left unchanged. `-q1 -P1` is identical to the old behavior.
 - Reading PNG-carts and writing fake PNG-like carts. The advantage of PNG-like
   carts is that all data chunks can be compressed too, so can be useful for 512b
   - 64k intros. The disadvantage is that additional 16-bytes of headers are
@@ -160,7 +160,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Magic comments to allow reordering statements and trying alternative
   expressions
 
-[unreleased]: https://github.com/vsariola/pakettic/compare/v1.3.1...HEAD
+[unreleased]: https://github.com/vsariola/pakettic/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/vsariola/pakettic/releases/tag/v1.4.0
 [1.3.1]: https://github.com/vsariola/pakettic/releases/tag/v1.3.1
 [1.3.0]: https://github.com/vsariola/pakettic/releases/tag/v1.3.0
 [1.2.0]: https://github.com/vsariola/pakettic/releases/tag/v1.2.0
