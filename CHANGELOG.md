@@ -9,26 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Multiprocessing. When obtaining a candidate solution, previously the candidate
-  was computed by mutating the state from time t-1. Now the candidate is created
-  by mutating the state from time t-N. This means that at any given time, we can
-  be computing N different mutations & their costs in parallel. This is
-  implemented using a queue of asynchronous tasks, where there is N elements.
-  New candidates are popped from the left, while states to be mutated placed to
-  the right. Parameter `-q` controls the queue length and `-P` the number of
-  parallel processes in a pool used to complete the tasks. `-q1 -P1` is
-  identical to the old behavior.
+- Parallel processing: mutations and their costs are computed on several
+  processes simultaneously. This results in approx. 2-3x faster packing of
+  files. Parameter `-q` controls the processing queue length; this is the
+  maximum number of solutions being explored simultaneously. Defaults to 12, but
+  you can increase if you have a lot of cores. `-P` controls the number of
+  parallel processes in a pool, defaults to number of cores and can be usually
+  left unchanged. `-q1 -P1` is identical to the old behavior.
 - Reading PNG-carts and writing fake PNG-like carts. The advantage of PNG-like
-  carts is that all data chunks can be compressed too, but additional 16-bytes
-  of headers are needed.
+  carts is that all data chunks can be compressed too, so can be useful for 512b
+  - 64k intros. The disadvantage is that additional 16-bytes of headers are
+  needed. Choose this output format with `-fpng`. The file ending is still .tic,
+  but TIC-80 sees the magic bytes and detects them as PNGs.
 - Shuffling data chunks during packing. This works only with PNG-like carts, as
   only they support compressing the entire cart.
 - Loading .lua carts with multiple banks.
-- Reading PNG-carts and writing fake PNG-like carts. The PNG-like carts have a
-  file extension of .tic, TIC-80 will recognize anything starting with `\x89PNG`
-  and looks for a 'caRt' chunk anyway. However, the cart extension not being
-  PNG, TIC-80 does not try the steganographic method, which is good, as it
-  crashes.
 - Command line parameter `-s0` means iterate forever. Intermediate results are
   saved, as always. ([#16][i16])
 

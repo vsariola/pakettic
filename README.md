@@ -216,14 +216,15 @@ the unpacked intro: the code will not be included in the packed cart.
   as PNGs based on their headers and loads the cart from a `caRt` chunk, which
   contains a TIC-80 cart, but this time the entire cart is compressed. ~ 20
   bytes of additional headers are needed to fool TIC-80, so this is not
-  recommended for very tiny intros. You need to spesify which data chunks should
+  recommended for very tiny intros. You need to specify which data chunks should
   be kept. For example, `-fpng -cCODE,MUSIC,PATTERNS,WAVEFORM,SAMPLES,DEFAULT`
   would include the necessary chunks for the music. PNG-like carts require
   TIC-80 v1.1.2729 or newer.
 - Alternative way to use data chunks is to use `-d` to have pakettic
-  automatically convert all data chunks into hexadecimal strings in the code,
-  along with a small stub placed at the beginning of the code that interprets
-  the string and loads the data at correct address.
+  automatically convert data chunks in bank 0 into hexadecimal strings in the
+  code, along with a small stub placed at the beginning of the code that
+  interprets the string and loads the data at correct address. This breaks
+  `sync` from bank 0, so use with care in multibank carts.
 
 ## Known issues
 
