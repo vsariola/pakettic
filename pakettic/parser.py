@@ -164,7 +164,7 @@ varlist <<= pp.Group(var - (COMMA - var)[0, ...], aslist=True)
 
 # namelist ::= Name {‘,’ Name}
 _Name = Name.copy().set_parse_action(lambda t: ast.Name(t[0]))
-namelist <<= _Name - (COMMA - _Name)[0, ...]
+namelist <<= _Name - (COMMA + _Name)[0, ...]
 
 # explist ::= exp {‘,’ exp}
 explist <<= pp.Group(exp - (COMMA - exp)[0, ...], aslist=True)
