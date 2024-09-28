@@ -51,7 +51,7 @@ class TestOptimization(unittest.TestCase):
                     with self.subTest(code=code, alg=alg, queue_length=queue_length):
                         try:
                             root = parser.parse_string(code)
-                            with optimize.Solutions((root, None), 0, queue_length, 1, _cost_func, lambda x: None) as solutions:
+                            with optimize.Solutions((root, None), 0, queue_length, 1, _cost_func, lambda x, y: None) as solutions:
                                 if alg == 'lahc':
                                     opt_root = optimize.lahc(solutions, steps=100, list_length=50, init_margin=0)
                                 elif alg == 'dlas':
@@ -80,7 +80,7 @@ class TestOptimization(unittest.TestCase):
                     with self.subTest(code=code, alg=alg, queue_length=queue_length):
                         try:
                             root = parser.parse_string(code)
-                            with optimize.Solutions((root, None), 0, queue_length, 4, _cost_func, lambda x: None) as solutions:
+                            with optimize.Solutions((root, None), 0, queue_length, 4, _cost_func, lambda x,y: None) as solutions:
                                 if alg == 'lahc':
                                     opt_root = optimize.lahc(solutions, steps=100, list_length=50, init_margin=0)
                                 elif alg == 'dlas':
