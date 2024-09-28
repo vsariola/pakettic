@@ -327,8 +327,8 @@ def _(node: ast.Table, fmt: Formatter):
 @ _traverse.register
 def _(node: ast.Field, fmt: Formatter):
     if node.key is not None:
-        if type(node.key) is ast.LiteralString:
-            yield node.key.value
+        if type(node.key) is str:
+            yield node.key
             yield '='
         else:
             yield '['

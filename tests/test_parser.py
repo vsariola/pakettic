@@ -491,8 +491,8 @@ class TestTableConstructors(unittest.TestCase):
             ('{42,x,0}', [Field(Numeral(42)), Field(Name('x')), Field(Numeral(0))]),
             ('{42;x;0}', [Field(Numeral(42)), Field(Name('x')), Field(Numeral(0))]),
             ('{[1]=5,[42]=0}', [Field(Numeral(5), Numeral(1)), Field(Numeral(0), Numeral(42))]),
-            ('{x=2,y=4}', [Field(Numeral(2), LiteralString('x')), Field(Numeral(4), LiteralString('y'))]),
-            ('{42,x=4,[4]=1}', [Field(Numeral(42)), Field(Numeral(4), LiteralString('x')), Field(Numeral(1), Numeral(4))]),
+            ('{x=2,y=4}', [Field(Numeral(2), 'x'), Field(Numeral(4), 'y')]),
+            ('{42,x=4,[4]=1}', [Field(Numeral(42)), Field(Numeral(4), 'x'), Field(Numeral(1), Numeral(4))]),
         ]
         for a, b in cases:
             expected = Table(b)

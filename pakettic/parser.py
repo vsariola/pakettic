@@ -276,7 +276,7 @@ fieldlist <<= field + (fieldsep + field)[0, ...] + fieldsep[0, 1]
 
 # field: := ‘[’ exp ‘]’ ‘=’ exp | Name ‘=’ exp | exp
 field <<= (LBRACK + exp + RBRACK + EQ + exp).set_parse_action(lambda t: ast.Field(key=t[0], value=t[1])) | \
-    (Name + EQ + exp).set_parse_action(lambda t: ast.Field(key=ast.LiteralString(t[0]), value=t[1])) | \
+    (Name + EQ + exp).set_parse_action(lambda t: ast.Field(key=t[0], value=t[1])) | \
     (exp.copy()).set_parse_action(lambda t: ast.Field(value=t[0]))
 
 # fieldsep ::= ‘,’ | ‘;’
