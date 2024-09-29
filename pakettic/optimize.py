@@ -629,6 +629,15 @@ def _(node: ast.Func, visitor: Callable[[ast.Node, ast.Node, str], None], parent
 
 
 @ visit.register
+def _(node: ast.LocalFunc, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    visit(node.name, visitor, node, "name")
+    for i, a in enumerate(node.args):
+        visit(a, visitor, node, f"args.{i}")
+    visit(node.body, visitor, node, "body")
+
+
+@ visit.register
 def _(node: ast.Index, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
     visitor(node, parent, attr)
     visit(node.obj, visitor, node, "obj")

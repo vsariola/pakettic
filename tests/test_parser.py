@@ -466,7 +466,7 @@ class TestLocals(unittest.TestCase):
     def test_local_function(self):
         got = parser.parse_string('local function f(x) end')
         expected = Block([
-            Local([Name('f')], [Func(args=[Name('x')], body=Block([]))])
+            LocalFunc(name=Name('f'), args=[Name('x')], body=Block([])),
         ])
         self.assertEqual(got, expected)
 
@@ -494,7 +494,7 @@ class TestTableConstructors(unittest.TestCase):
             ('{x=2,y=4}', [NamedField(Numeral(2), 'x'), NamedField(Numeral(4), 'y')]),
             ('{42,x=4,[4]=1}', [Field(Numeral(42)), NamedField(Numeral(4), 'x'), ExpressionField(Numeral(1), Numeral(4))]),
             ('{["hello"]=1}', [NamedField(Numeral(1), 'hello')]),
-            ('{["hel/lo"]=1}', [ExpressionField(Numeral(1), LiteralString('hel/lo'))]), # hel/lo is not a valid identifier so should stay as expression field
+            ('{["hel/lo"]=1}', [ExpressionField(Numeral(1), LiteralString('hel/lo'))]),  # hel/lo is not a valid identifier so should stay as expression field
         ]
         for a, b in cases:
             expected = Table(b)

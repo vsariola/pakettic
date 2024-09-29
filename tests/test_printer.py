@@ -77,7 +77,8 @@ class TestPrinter(unittest.TestCase):
             "a.foo()",
             "a:foo().bar()",
             "f=function(x,...)end",
-            "x={['foo/bar']=1}"
+            "x={['foo/bar']=1}",
+            "local function f()end",
         ]
         for a in cases:
             with self.subTest(code=a):

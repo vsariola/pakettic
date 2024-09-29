@@ -295,6 +295,26 @@ def _(node: ast.Func, fmt: Formatter):
 
 
 @ _traverse.register
+def _(node: ast.LocalFunc, fmt: Formatter):
+    yield 'local function'
+    yield node.name.id
+    yield '('
+    for i, v in enumerate(node.args):
+        if i > 0:
+            yield ','
+        yield from _traverse(v, fmt)
+    yield ')'
+    if fmt.pretty:
+        yield '\n'
+    fmt.indent += 1
+    yield from _traverse(node.body, fmt)
+    fmt.indent -= 1
+    if fmt.pretty:
+        yield '  ' * fmt.indent
+    yield 'end'
+
+
+@ _traverse.register
 def _(node: ast.Index, fmt: Formatter):
     require_parentheses = type(node.obj) is not ast.Name and \
         type(node.obj) is not ast.Index and \

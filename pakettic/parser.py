@@ -127,7 +127,7 @@ func_member_def.set_parse_action(lambda t: ast.Assign(
 ))
 func_def = func_vanilla_def | func_member_def
 local_func_def = LOCAL + FUNCTION - Name - funcbody
-local_func_def.set_parse_action(lambda toks: ast.Local([ast.Name(toks[0])], [toks[1]]))
+local_func_def.set_parse_action(lambda toks: ast.LocalFunc(ast.Name(toks[0]), toks[1].args, toks[1].body))
 
 stat <<= SEMI | \
     label | \

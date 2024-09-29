@@ -136,6 +136,14 @@ class Func(Node):
 
 
 @dataclass
+class LocalFunc(Node):
+    """Represents a local function definition the abstract syntax tree (e.g. local function f() end)"""
+    name: Name
+    args: list[Name]
+    body: Block
+
+
+@dataclass
 class Index(Node):
     """Represents an indexing (obj[item]) the abstract syntax tree"""
     obj: Node
