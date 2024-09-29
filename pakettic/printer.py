@@ -325,16 +325,22 @@ def _(node: ast.Table, fmt: Formatter):
 
 
 @ _traverse.register
+def _(node: ast.NamedField, fmt: Formatter):
+    yield node.key
+    yield '='
+    yield from _traverse(node.value, fmt)
+
+
+@ _traverse.register
+def _(node: ast.ExpressionField, fmt: Formatter):
+    yield '['
+    yield from _traverse(node.key, fmt)
+    yield ']='
+    yield from _traverse(node.value, fmt)
+
+
+@ _traverse.register
 def _(node: ast.Field, fmt: Formatter):
-    if node.key is not None:
-        if type(node.key) is ast.LiteralString:
-            yield node.key.value
-            yield '='
-        else:
-            yield '['
-            yield from _traverse(node.key, fmt)
-            yield ']'
-            yield '='
     yield from _traverse(node.value, fmt)
 
 

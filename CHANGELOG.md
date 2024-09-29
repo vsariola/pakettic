@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- In table constructors, use record-style fields (`{a=1}`) in place of
+  expression-style fields (`{['a']=1}`) only then the key is a valid identifier.
+  For example, `{['foo/bar']=1}` was getting converted to `{foo/bar=1}`, causing
+  crash.
 - Functions with named and varargs crashed the parser (e.g.
   `f=function(x,...)end`).
 

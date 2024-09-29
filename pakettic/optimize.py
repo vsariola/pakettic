@@ -643,9 +643,21 @@ def _(node: ast.Table, visitor: Callable[[ast.Node, ast.Node, str], None], paren
 
 
 @ visit.register
-def _(node: ast.Field, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+def _(node: ast.ExpressionField, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
     visitor(node, parent, attr)
     visit(node.key, visitor, node, "key")
+    visit(node.value, visitor, node, "value")
+
+
+@ visit.register
+def _(node: ast.NamedField, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
+    visit(node.value, visitor, node, "value")
+
+
+@ visit.register
+def _(node: ast.Field, visitor: Callable[[ast.Node, ast.Node, str], None], parent: ast.Node = None, attr: str = None):
+    visitor(node, parent, attr)
     visit(node.value, visitor, node, "value")
 
 

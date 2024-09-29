@@ -490,9 +490,11 @@ class TestTableConstructors(unittest.TestCase):
         cases = [
             ('{42,x,0}', [Field(Numeral(42)), Field(Name('x')), Field(Numeral(0))]),
             ('{42;x;0}', [Field(Numeral(42)), Field(Name('x')), Field(Numeral(0))]),
-            ('{[1]=5,[42]=0}', [Field(Numeral(5), Numeral(1)), Field(Numeral(0), Numeral(42))]),
-            ('{x=2,y=4}', [Field(Numeral(2), LiteralString('x')), Field(Numeral(4), LiteralString('y'))]),
-            ('{42,x=4,[4]=1}', [Field(Numeral(42)), Field(Numeral(4), LiteralString('x')), Field(Numeral(1), Numeral(4))]),
+            ('{[1]=5,[42]=0}', [ExpressionField(Numeral(5), Numeral(1)), ExpressionField(Numeral(0), Numeral(42))]),
+            ('{x=2,y=4}', [NamedField(Numeral(2), 'x'), NamedField(Numeral(4), 'y')]),
+            ('{42,x=4,[4]=1}', [Field(Numeral(42)), NamedField(Numeral(4), 'x'), ExpressionField(Numeral(1), Numeral(4))]),
+            ('{["hello"]=1}', [NamedField(Numeral(1), 'hello')]),
+            ('{["hel/lo"]=1}', [ExpressionField(Numeral(1), LiteralString('hel/lo'))]), # hel/lo is not a valid identifier so should stay as expression field
         ]
         for a, b in cases:
             expected = Table(b)

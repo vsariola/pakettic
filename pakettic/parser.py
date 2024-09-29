@@ -274,9 +274,21 @@ tableconstructor.set_parse_action(lambda t: ast.Table(fields=t[0]))
 # fieldlist: := field {fieldsep field}[fieldsep]
 fieldlist <<= field + (fieldsep + field)[0, ...] + fieldsep[0, 1]
 
+
+def expFieldParseAction(t):
+    if type(t[0]) is ast.LiteralString:
+        try:
+            # if the key is a string and the string is a valid identifier, we can use NamedField instead
+            Name.parse_string(t[0].value, parse_all=True)
+            return ast.NamedField(key=t[0].value, value=t[1])
+        except:
+            pass
+    return ast.ExpressionField(key=t[0], value=t[1])
+
+
 # field: := ‘[’ exp ‘]’ ‘=’ exp | Name ‘=’ exp | exp
-field <<= (LBRACK + exp + RBRACK + EQ + exp).set_parse_action(lambda t: ast.Field(key=t[0], value=t[1])) | \
-    (Name + EQ + exp).set_parse_action(lambda t: ast.Field(key=ast.LiteralString(t[0]), value=t[1])) | \
+field <<= (LBRACK + exp + RBRACK + EQ + exp).set_parse_action(expFieldParseAction) | \
+    (Name + EQ + exp).set_parse_action(lambda t: ast.NamedField(key=t[0], value=t[1])) | \
     (exp.copy()).set_parse_action(lambda t: ast.Field(value=t[0]))
 
 # fieldsep ::= ‘,’ | ‘;’

@@ -149,10 +149,23 @@ class Table(Node):
 
 
 @dataclass
-class Field(Node):
-    """Represents a field in the inside a table definition"""
+class ExpressionField(Node):
+    """Represents a field with an expression as its key in the inside a table definition"""
     value: Node
     key: Node = None
+
+
+@dataclass
+class NamedField(Node):
+    """Represents a field with an name as its key in the inside a table definition"""
+    value: Node
+    key: Node = str
+
+
+@dataclass
+class Field(Node):
+    """Represents a field with just a value, no key, inside the inside a table definition"""
+    value: Node
 
 
 @dataclass
