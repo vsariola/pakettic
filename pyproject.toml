@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pakettic"
-version = "1.4.1-dev"
+version = "1.4.1"
 description = "A tool for minifying and compressing TIC-80 fantasy console carts"
 authors = ["Veikko Sariola <5684185+vsariola@users.noreply.github.com>"]
 readme = "README.md"
@@ -10,7 +10,7 @@ keywords = ["TIC-80", "Fantasy Console", "Compression", "LUA"]
 classifiers = [
     "Environment :: Console",
     "License :: OSI Approved :: MIT License",
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
 ]
 include = ["LICENSE"]
 
