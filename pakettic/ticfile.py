@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 import io
-from lib2to3.pgen2.token import SLASH
 import os
 import struct
 import zlib
