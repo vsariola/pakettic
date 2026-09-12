@@ -9,7 +9,7 @@ from glob import glob
 import os
 import sys
 import zlib
-import pkg_resources
+import importlib.metadata
 import zopfli
 import time
 import datetime
@@ -70,7 +70,7 @@ def main():
     """Main entrypoint for the command line program"""
     sys.setrecursionlimit(100000)  # TODO: find out why the parser recurses so heavily and reduce that
 
-    version = pkg_resources.get_distribution('pakettic').version
+    version = importlib.metadata.version("pakettic")
     argparser = argparse.ArgumentParser(
         prog='pakettic', description=f'Minify and compress TIC-80 fantasy console carts. v{version}',
         formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=33))
