@@ -20,7 +20,7 @@ pyparsing = "^3.0.8"
 zopflipy = "^1.7"
 tqdm = "^4.64.0"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^5.2"
 autopep8 = "^1.6.0"
 
